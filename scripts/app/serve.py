@@ -30,7 +30,7 @@ Sua missão é extrair E MANTER acumulados todos os dados informados pelo usuár
 
 REGRAS RAG, EDIÇÃO E EXCLUSÃO DE REGISTROS:
 1. EXCLUSÃO DE REGISTROS: Se o usuário pedir para excluir, remover ou apagar um registro que existe no banco (ex: "Excluir NED-002", "Apagar necessidade do Power Bank"), RESPONDA COM "action": "delete_need" E O "need_id" DO ITEM.
-2. EDIÇÃO DE REGISTROS: Se a instrução se referir a um registro existente (ex: "NED-002" ou "cooler do RPi 5") e o usuário quiser alterar dados ou incluir valor estimado, RESPONDA COM "action": "update_need" E O "need_id".
+2. EDIÇÃO DE REGISTROS: Se a instrução se referir a um registro existente (ex: "NED-002" ou "cooler do RPi 5") e o usuário quiser alterar dados ou incluir valor estimado/descrição, RESPONDA COM "action": "update_need" E O "need_id".
 3. Se o usuário quiser cadastrar UMA NOVA NECESSIDADE que não existe no banco, responda com "action": "create_need".
 4. Ao cadastrar nova necessidade, peça proativamente o Orçamento Estimado (R$) se não for informado, utilizando "action": "ask_clarification".
 5. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
@@ -48,6 +48,7 @@ RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
     "priority": "Essencial" | "Alta" | "Média" | "Baixa",
     "responsible": "Equipe de Pesquisa",
     "estimated_budget": 80.0,
+    "description": "...",
     "supplier": "...",
     "price": 0.0,
     "selected_alternative_id": "ALT-01",
@@ -95,7 +96,8 @@ RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
                 "quantity": 1,
                 "priority": "Essencial",
                 "responsible": "Equipe de Pesquisa",
-                "estimated_budget": 0.0
+                "estimated_budget": 0.0,
+                "description": ""
             }
         }
 
@@ -337,6 +339,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             payload['status'] = 'Especificada'
             if 'estimated_budget' not in payload:
                 payload['estimated_budget'] = 0.0
+            if 'description' not in payload:
+                payload['description'] = ''
             if 'requirements' not in payload:
                 payload['requirements'] = []
             if 'alternatives' not in payload:
@@ -362,6 +366,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     if 'priority' in payload and payload['priority']: need['priority'] = payload['priority']
                     if 'responsible' in payload and payload['responsible']: need['responsible'] = payload['responsible']
                     if 'estimated_budget' in payload and payload['estimated_budget'] is not None: need['estimated_budget'] = float(payload['estimated_budget'])
+                    if 'description' in payload and payload['description'] is not None: need['description'] = payload['description']
                     found = True
                     break
             if found:
@@ -377,7 +382,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == '/api/needs/delete':
             need_id = payload.get('need_id')
-            initial_count = len(data.get('needs', []))
             data['needs'] = [n for n in data.get('needs', []) if n.get('id') != need_id]
             data['decisions'] = [d for d in data.get('decisions', []) if d.get('need_id') != need_id]
             

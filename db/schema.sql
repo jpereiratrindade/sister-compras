@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS needs (
     status VARCHAR(50) NOT NULL DEFAULT 'Especificada',
     responsible VARCHAR(255) NOT NULL,
     estimated_budget NUMERIC(14, 2) DEFAULT 0.0,
+    description TEXT,
     deadline DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

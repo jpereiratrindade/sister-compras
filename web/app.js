@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('edit-need-priority').value = need.priority || 'Essencial';
     document.getElementById('edit-need-budget').value = need.estimated_budget || 0.0;
     document.getElementById('edit-need-responsible').value = need.responsible || 'Equipe de Pesquisa';
+    document.getElementById('edit-need-description').value = need.description || '';
 
     if (modalEditNeed) modalEditNeed.showModal();
   };
@@ -191,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quantity: parseInt(formData.get('quantity'), 10),
         priority: formData.get('priority'),
         estimated_budget: parseFloat(formData.get('estimated_budget') || 0),
-        responsible: formData.get('responsible')
+        responsible: formData.get('responsible'),
+        description: formData.get('description')
       };
 
       try {
@@ -314,14 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'create_need') {
       actionLabel = 'Cadastrar Nova Necessidade';
       const estBudget = params.estimated_budget ? ` | <strong>Orçamento Estimado:</strong> R$ ${params.estimated_budget.toFixed(2)}` : '';
+      const descHtml = params.description ? `<br><strong>Descrição:</strong> ${params.description}` : '';
       detailsHtml = `<strong>Título:</strong> ${params.title || 'N/A'}<br>
                      <strong>Categoria:</strong> ${params.category || 'Equipamentos Científicos'} | <strong>Quantidade:</strong> ${params.quantity || 1}<br>
-                     <strong>Prioridade:</strong> ${params.priority || 'Essencial'}${estBudget}`;
+                     <strong>Prioridade:</strong> ${params.priority || 'Essencial'}${estBudget}${descHtml}`;
     } else if (action === 'update_need') {
       actionLabel = `Atualizar Necessidade Existente [${params.need_id || 'NED-001'}]`;
       const estBudget = params.estimated_budget ? ` | <strong>Novo Orçamento Est.:</strong> R$ ${params.estimated_budget.toFixed(2)}` : '';
+      const descHtml = params.description ? `<br><strong>Nova Descrição:</strong> ${params.description}` : '';
       detailsHtml = `<strong>ID:</strong> ${params.need_id || 'NED-001'}<br>
-                     <strong>Título:</strong> ${params.title || 'Inalterado'}${estBudget}`;
+                     <strong>Título:</strong> ${params.title || 'Inalterado'}${estBudget}${descHtml}`;
     } else if (action === 'delete_need') {
       actionLabel = `🗑️ Excluir Necessidade [${params.need_id || 'NED-001'}]`;
       detailsHtml = `<strong>ID para Exclusão:</strong> ${params.need_id || 'NED-001'}<br>
@@ -521,7 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quantity: parseInt(formData.get('quantity'), 10),
         priority: formData.get('priority'),
         estimated_budget: parseFloat(formData.get('estimated_budget') || 0),
-        responsible: formData.get('responsible')
+        responsible: formData.get('responsible'),
+        description: formData.get('description') || ''
       };
 
       try {
@@ -639,7 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quantity: 2,
         priority: 'Essencial',
         status: 'Decidida',
-        responsible: 'Equipe de Infraestrutura'
+        responsible: 'Equipe de Infraestrutura',
+        description: 'PowerStation Portátil LiFePO4 de no mínimo 500Wh para autonomia em campo.'
       }],
       decisions: [{
         id: 'DEC-001',
@@ -688,6 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const estBudgetCard = need.estimated_budget && need.estimated_budget > 0 ? ` · <strong>Orçamento Est.:</strong> R$ ${need.estimated_budget.toFixed(2)}` : '';
+      const descCard = need.description ? `<p style="font-size:0.8rem; color:var(--muted); margin-top:4px; margin-bottom:6px;"><em>${need.description}</em></p>` : '';
 
       card.innerHTML = `
         <div class="system-card-head">
@@ -702,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="status-pill ${need.status === 'Decidida' || need.status === 'Adquirida' || need.status === 'Entregue' ? 'healthy' : 'degraded'}">${need.status}</span>
           </div>
         </div>
+        ${descCard}
         <div class="system-card-meta">
           <span>Quantidade: ${need.quantity} | Prioridade: ${need.priority}</span>
           <span>Responsável: ${need.responsible}</span>
@@ -761,7 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (need.status === 'Adquirida') purchasedCount++;
       if (need.status === 'Entregue') deliveredCount++;
 
-      let supplier = 'N/A';
       let subtotal = 0.0;
       let altTitle = 'Aguardando Parecer';
       let isEstimated = false;
@@ -770,7 +777,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const alt = need.alternatives.find(a => a.id === dec.selected_alternative_id);
         if (alt) {
           altTitle = alt.title;
-          supplier = alt.supplier_or_source || 'N/A';
           if (alt.prices && alt.prices[0]) {
             subtotal = alt.prices[0].unit_price * need.quantity;
             totalBudget += subtotal;

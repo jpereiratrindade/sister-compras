@@ -52,6 +52,7 @@ class DatabaseManager:
                     if os.path.exists(SCHEMA_FILE):
                         with open(SCHEMA_FILE, 'r', encoding='utf-8') as f:
                             cur.execute(f.read())
+                        cur.execute("ALTER TABLE needs ADD COLUMN IF NOT EXISTS description TEXT;")
                         conn.commit()
                 self.use_pg = True
                 print(f"[DatabaseManager] Conectado ao Banco Independente PostgreSQL: {self.conn_str}")
@@ -63,7 +64,7 @@ class DatabaseManager:
         if self.use_pg:
             try:
                 data = {
-                    "version": "0.3.0",
+                    "version": "0.4.0",
                     "projects": [],
                     "needs": [],
                     "decisions": []
@@ -79,7 +80,7 @@ class DatabaseManager:
                             })
                         
                         # Carregar necessidades
-                        cur.execute("SELECT id, project_id, title, category, quantity, priority, status, responsible, estimated_budget FROM needs ORDER BY id ASC")
+                        cur.execute("SELECT id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description FROM needs ORDER BY id ASC")
                         needs_map = {}
                         for row in cur.fetchall():
                             need_item = {
@@ -87,6 +88,7 @@ class DatabaseManager:
                                 "category": row[3], "quantity": row[4], "priority": row[5],
                                 "status": row[6], "responsible": row[7],
                                 "estimated_budget": float(row[8]) if row[8] is not None else 0.0,
+                                "description": row[9] or "",
                                 "requirements": [], "alternatives": []
                             }
                             needs_map[row[0]] = need_item
@@ -134,7 +136,7 @@ class DatabaseManager:
             except Exception:
                 pass
         return {
-            "version": "0.3.0",
+            "version": "0.4.0",
             "projects": [{"id": "PROJ-PESQUISA-01", "name": "Projeto de Pesquisa e Desenvolvimento Tecnológico", "lead_researcher": "Pesquisador Responsável"}],
             "needs": [],
             "decisions": []
@@ -163,8 +165,8 @@ class DatabaseManager:
                         # 2. Sincronizar Necessidades
                         for need in data.get("needs", []):
                             cur.execute("""
-                                INSERT INTO needs (id, project_id, title, category, quantity, priority, status, responsible, estimated_budget)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                INSERT INTO needs (id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (id) DO UPDATE SET
                                     title = EXCLUDED.title,
                                     category = EXCLUDED.category,
@@ -172,12 +174,14 @@ class DatabaseManager:
                                     priority = EXCLUDED.priority,
                                     status = EXCLUDED.status,
                                     responsible = EXCLUDED.responsible,
-                                    estimated_budget = EXCLUDED.estimated_budget;
+                                    estimated_budget = EXCLUDED.estimated_budget,
+                                    description = EXCLUDED.description;
                             """, (
                                 need.get("id"), need.get("project_id", "PROJ-PESQUISA-01"),
                                 need.get("title"), need.get("category"), need.get("quantity", 1),
                                 need.get("priority", "Essencial"), need.get("status", "Especificada"),
-                                need.get("responsible", "Equipe de Pesquisa"), float(need.get("estimated_budget", 0.0))
+                                need.get("responsible", "Equipe de Pesquisa"), float(need.get("estimated_budget", 0.0)),
+                                need.get("description", "")
                             ))
 
                         # 3. Sincronizar Alternativas
