@@ -38,5 +38,37 @@ assert isinstance(value["operational_activities"], list)
 page="$(curl -fsS "${headers[@]}" "${BASE_URL}/")"
 grep -q "<title>Nexo-Compras" <<<"$page"
 grep -q 'nexo-compras.integration/1.0.0' <<<"$page"
+python3 -c '
+from html.parser import HTMLParser
+import sys
+
+class DialogValidator(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.dialogs = []
+        self.stack = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "dialog":
+            return
+        dialog_id = dict(attrs).get("id")
+        if self.stack:
+            raise AssertionError(
+                f"dialog {dialog_id!r} aninhado em {self.stack[-1]!r}"
+            )
+        self.stack.append(dialog_id)
+        self.dialogs.append(dialog_id)
+
+    def handle_endtag(self, tag):
+        if tag == "dialog":
+            assert self.stack, "fechamento de dialog sem abertura"
+            self.stack.pop()
+
+validator = DialogValidator()
+validator.feed(sys.stdin.read())
+assert not validator.stack, f"dialog não fechado: {validator.stack[-1]!r}"
+assert "modal-ai-chat" in validator.dialogs
+assert "modal-project" in validator.dialogs
+' <<<"$page"
 
 echo "Smoke test do Nexo-Compras: ok"

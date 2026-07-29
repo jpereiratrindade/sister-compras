@@ -284,6 +284,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
+    def end_headers(self):
+        path = urllib.parse.urlparse(self.path).path
+        if path == "/" or path.endswith((".html", ".js", ".css")):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def identity(self):
         subject = self.headers.get("X-Sister-Subject", "").strip()
         if not subject:
