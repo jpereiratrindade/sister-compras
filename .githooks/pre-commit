@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+mapfile -t staged_sources < <(git diff --cached --name-only --diff-filter=ACMR -- src include tests | grep -E '\.(cpp|hpp|h)$' || true)
+if [[ ${#staged_sources[@]} -eq 0 ]]; then
+    exit 0
+fi
+
+if command -v clang-format >/dev/null 2>&1; then
+    printf '%s\n' "${staged_sources[@]}" | xargs -r clang-format -i
+    git add -- "${staged_sources[@]}"
+fi
+
+if [[ -f build/compile_commands.json ]] && command -v clang-tidy >/dev/null 2>&1; then
+    mapfile -t staged_cpp < <(printf '%s\n' "${staged_sources[@]}" | grep -E '\.cpp$' || true)
+    for f in "${staged_cpp[@]}"; do
+        clang-tidy "$f" -p build --config-file=.clang-tidy --quiet
+    done
+fi

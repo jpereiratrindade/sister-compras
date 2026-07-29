@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sister.embrapa.br/contracts/sister_compras_manifest.schema.json",
+  "title": "SisTer-Compras Manifest Contract",
+  "description": "Esquema formal de contrato para intercâmbio de necessidades, evidências e decisões entre SisTer-Compras e o ecossistema SisTer.",
+  "type": "object",
+  "required": [
+    "version",
+    "project_id",
+    "needs"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["0.1.0", "0.2.0"]
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "lead_researcher": {
+      "type": "string"
+    },
+    "needs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/need"
+      }
+    }
+  },
+  "$defs": {
+    "need": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "category",
+        "priority",
+        "status"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "priority": {
+          "type": "string",
+          "enum": ["Essencial", "Alta", "Media", "Baixa", "Opcional"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Rascunho", "Especificada", "Em analise", "Decidida", "Atendida", "Cancelada"]
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "description"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "constraint_value": { "type": "string" }
+            }
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "type"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "type": { "type": "string" },
+              "supplier_or_source": { "type": "string" },
+              "prices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["supplier", "unit_price", "currency"],
+                  "properties": {
+                    "supplier": { "type": "string" },
+                    "unit_price": { "type": "number" },
+                    "currency": { "type": "string" },
+                    "observed_date": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "decision": {
+          "type": "object",
+          "required": ["selected_alternative_id", "technical_justification", "decided_by"],
+          "properties": {
+            "selected_alternative_id": { "type": "string" },
+            "technical_justification": { "type": "string" },
+            "decided_by": { "type": "string" },
+            "decision_date": { "type": "string" },
+            "is_human_decision": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

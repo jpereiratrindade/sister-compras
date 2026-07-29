@@ -1,0 +1,90 @@
+{
+  "contract_version": "v1.0.0",
+  "tool_name": "review_change",
+  "tool": "review_change",
+  "description": "Executa revisao independente orientada a risco, politica e evidencias antes da promocao da mudanca.",
+  "allowed_modes": [
+    "explore",
+    "safe-change",
+    "restricted"
+  ],
+  "risk_level": "moderate",
+  "policy_refs": [
+    "policies/review_policy.md",
+    "policies/evidence_and_audit_policy.md",
+    "policies/context_boundary_policy.md"
+  ],
+  "human_approval": {
+    "required": false,
+    "policy": "never"
+  },
+  "preconditions": [
+    "diff_available",
+    "affected_contexts_declared",
+    "tool_contracts_resolved"
+  ],
+  "required_evidence": [
+    "task_id",
+    "human_owner",
+    "contract_ref",
+    "policy_refs_checked",
+    "review_findings",
+    "final_status"
+  ],
+  "forbidden_actions": [
+    "approve_without_reading_diff",
+    "ignore_policy_violation",
+    "promote_change_without_findings_summary"
+  ],
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "target_scope",
+      "review_goal"
+    ],
+    "properties": {
+      "target_scope": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string"
+        }
+      },
+      "review_goal": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "findings",
+      "decision",
+      "evidence"
+    ],
+    "properties": {
+      "findings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "decision": {
+        "type": "string"
+      },
+      "evidence": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "postconditions": [
+    "review_outcome_is_traceable",
+    "promotion_decision_is_explicit"
+  ]
+}

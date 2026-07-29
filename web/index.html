@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SisTer-Compras · Gestão de Necessidades e Recursos</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="system-layout">
+      <header class="topbar">
+        <div class="mini-brand">
+          <svg class="brand-symbol" viewBox="0 0 64 64" aria-hidden="true">
+            <g fill="none" stroke="currentColor" stroke-width="2.8"><path d="M32 5 55 18v28L32 59 9 46V18z"/><path d="M32 5v54M9 18l46 28M55 18 9 46"/></g>
+            <g fill="currentColor"><circle cx="32" cy="5" r="4"/><circle cx="55" cy="18" r="4"/><circle cx="55" cy="46" r="4"/><circle cx="32" cy="59" r="4"/><circle cx="9" cy="46" r="4"/><circle cx="9" cy="18" r="4"/><circle cx="32" cy="32" r="5"/></g>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-super">SUBSISTEMA AUTÔNOMO</span>
+            <h1>SisTer-Compras</h1>
+          </div>
+        </div>
+
+        <div class="top-center-label">
+          <span>Gestão de Recursos, Cotações e Decisões de Pesquisa</span>
+        </div>
+
+        <div class="top-context">
+          <span class="context-pill">Integração por Contrato</span>
+          <span class="user-avatar">SC</span>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <nav aria-label="Navegação do SisTer-Compras">
+          <button class="nav-link selected" type="button" data-tab="dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8Z"/></svg>
+            Visão Geral
+          </button>
+          <button class="nav-link" type="button" data-tab="needs">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6V3ZM14 3v4h4M9 11h6M9 15h6"/></svg>
+            Necessidades
+          </button>
+          <button class="nav-link" type="button" data-tab="decisions">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3ZM9 12l2 2 4-5"/></svg>
+            Decisões
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <span>Contrato Ativo</span>
+          <strong>sister-compras/0.2.0</strong>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="tab-content view active" id="tab-dashboard">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">Painel do Pesquisador</span>
+              <h2>Gestão de Recursos de Pesquisa</h2>
+              <p id="project-header-info">Carregando informações do projeto...</p>
+            </div>
+            <button class="primary-action" type="button" id="refresh-btn">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              Atualizar Dados
+            </button>
+          </div>
+
+          <div class="dashboard">
+            <article class="metric">
+              <strong id="metric-needs-count">0</strong>
+              <span>Necessidades Registradas</span>
+            </article>
+            <article class="metric">
+              <strong id="metric-decisions-count">0</strong>
+              <span>Decisões Aprovadas</span>
+            </article>
+            <article class="metric">
+              <strong id="metric-pending-count">0</strong>
+              <span>Pendentes de Parecer</span>
+            </article>
+            <article class="metric">
+              <strong id="metric-compliance">100%</strong>
+              <span>Proveniência Verificada</span>
+            </article>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Módulo de Aquisição</span>
+                <h3>Necessidades e Cotações do Projeto</h3>
+              </div>
+              <div class="search-field">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input id="needs-filter" type="search" placeholder="Buscar necessidade ou item...">
+              </div>
+            </div>
+            <div id="needs-list-container" class="system-grid"></div>
+          </section>
+        </section>
+
+        <section class="tab-content view" id="tab-needs">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">Evolução do Projeto</span>
+              <h2>Lista Completa de Necessidades</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Necessidade</th>
+                  <th>Categoria</th>
+                  <th>Qtd</th>
+                  <th>Prioridade</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="needs-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="tab-content view" id="tab-decisions">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">Auditabilidade & Responsabilidade</span>
+              <h2>Decisões Técnicas Registradas</h2>
+            </div>
+          </div>
+          <div id="decisions-timeline" class="timeline"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>SisTer-Compras · subsistema autônomo de gestão de recursos para pesquisa</span>
+        <span>Autonomia operacional e integração por contrato.</span>
+      </footer>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

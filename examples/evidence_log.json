@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-0001",
+  "human_owner": "owner",
+  "operational_mode": "safe-change",
+  "touched_contexts": [
+    "src",
+    "policies"
+  ],
+  "tool_name": "modify_code",
+  "contract_ref": "mcp/contracts/modify_code.contract.json",
+  "policy_refs_checked": [
+    "policies/ai_usage_policy.md",
+    "policies/evidence_and_audit_policy.md"
+  ],
+  "tests_executed": [
+    "ctest --test-dir build --output-on-failure"
+  ],
+  "approval_decision": "approved_by_owner",
+  "final_status": "completed"
+}

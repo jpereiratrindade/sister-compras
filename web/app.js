@@ -1,0 +1,154 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll('.nav-link');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const refreshBtn = document.getElementById('refresh-btn');
+  const needsFilter = document.getElementById('needs-filter');
+
+  // Tab switching
+  tabs.forEach(button => {
+    button.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('selected'));
+      tabContents.forEach(c => c.classList.remove('active'));
+
+      button.classList.add('selected');
+      const targetId = `tab-${button.dataset.tab}`;
+      const targetContent = document.getElementById(targetId);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+    });
+  });
+
+  async function loadDashboardData() {
+    try {
+      const response = await fetch('/api/data');
+      if (!response.ok) {
+        throw new Error('Falha ao obter dados');
+      }
+      const data = await response.json();
+      renderData(data);
+    } catch (err) {
+      console.warn('Usando estado padrão de demonstração:', err);
+      renderData(getFallbackData());
+    }
+  }
+
+  function getFallbackData() {
+    return {
+      version: '0.2.0',
+      projects: [{
+        id: 'PROJ-PESQUISA-01',
+        name: 'Projeto de Pesquisa e Desenvolvimento Tecnológico',
+        lead_researcher: 'Pesquisador Responsável'
+      }],
+      needs: [{
+        id: 'NED-001',
+        project_id: 'PROJ-PESQUISA-01',
+        title: 'Alimentar unidade computacional por 8h em operação de campo',
+        category: 'Energia & Infraestrutura',
+        quantity: 2,
+        priority: 'Essencial',
+        status: 'Decidida',
+        responsible: 'Equipe de Infraestrutura'
+      }],
+      decisions: [{
+        id: 'DEC-001',
+        need_id: 'NED-001',
+        selected_alternative_id: 'ALT-01',
+        technical_justification: 'A alternativa ALT-01 cumpre o requisito mandatório de 500Wh (possui 614Wh) e apresenta case estanque IP65 adequado ao ambiente de operação.',
+        decided_by: 'Pesquisador Responsável',
+        decision_date: '2026-07-29'
+      }]
+    };
+  }
+
+  function renderData(data) {
+    const project = data.projects && data.projects[0];
+    if (project) {
+      document.getElementById('project-header-info').textContent =
+        `Projeto: ${project.name} (${project.id}) · Responsável: ${project.lead_researcher}`;
+    }
+
+    const needs = data.needs || [];
+    const decisions = data.decisions || [];
+
+    // Update metrics
+    document.getElementById('metric-needs-count').textContent = needs.length;
+    document.getElementById('metric-decisions-count').textContent = decisions.length;
+    document.getElementById('metric-pending-count').textContent = Math.max(0, needs.length - decisions.length);
+
+    // Render Needs System Cards
+    const container = document.getElementById('needs-list-container');
+    container.innerHTML = '';
+
+    needs.forEach(need => {
+      const card = document.createElement('article');
+      card.className = 'system-card';
+      card.innerHTML = `
+        <div class="system-card-head">
+          <div>
+            <h4>${need.title}</h4>
+            <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}</p>
+          </div>
+          <span class="status-pill ${need.status === 'Decidida' ? 'healthy' : 'degraded'}">${need.status}</span>
+        </div>
+        <div class="system-card-meta">
+          <span>Quantidade: ${need.quantity} | Prioridade: ${need.priority}</span>
+          <span>Responsável: ${need.responsible}</span>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    // Render Table
+    const tableBody = document.getElementById('needs-table-body');
+    tableBody.innerHTML = '';
+    needs.forEach(need => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${need.id}</strong></td>
+        <td>${need.title}</td>
+        <td>${need.category}</td>
+        <td>${need.quantity}</td>
+        <td><span class="status-pill degraded">${need.priority}</span></td>
+        <td><span class="status-pill healthy">${need.status}</span></td>
+      `;
+      tableBody.appendChild(row);
+    });
+
+    // Render Decisions Timeline
+    const timeline = document.getElementById('decisions-timeline');
+    timeline.innerHTML = '';
+    decisions.forEach(dec => {
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      item.innerHTML = `
+        <div class="timeline-head">
+          <strong>Decisão [${dec.id}] — Necessidade ${dec.need_id}</strong>
+          <time>${dec.decision_date}</time>
+        </div>
+        <p><strong>Alternativa Selecionada:</strong> ${dec.selected_alternative_id}</p>
+        <p><strong>Decidido por:</strong> ${dec.decided_by}</p>
+        <p style="margin-top:6px; font-style:italic;">"${dec.technical_justification}"</p>
+      `;
+      timeline.appendChild(item);
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', loadDashboardData);
+  }
+
+  if (needsFilter) {
+    needsFilter.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const cards = document.querySelectorAll('.system-card');
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'flex' : 'none';
+      });
+    });
+  }
+
+  loadDashboardData();
+});

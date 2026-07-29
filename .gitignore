@@ -1,0 +1,15 @@
+build/
+build-*/
+dist/
+out/
+.cache/
+.venv/
+venv/
+compile_commands.json
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.log

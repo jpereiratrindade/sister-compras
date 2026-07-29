@@ -1,0 +1,18 @@
+name: AI Validation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate tool contracts
+        run: python3 scripts/validate_tool_contracts.py
+      - name: Validate governance repo
+        run: python3 scripts/validate_governance_repo.py
