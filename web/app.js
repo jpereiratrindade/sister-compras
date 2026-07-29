@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentData = null;
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
+  let chatHistoryList = [];
 
   // Tab switching
   tabs.forEach(button => {
@@ -140,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Chat Conversacional & Extração de Intenção com Confirmação Humana e RAG
+  // Chat Conversacional & Extração de Intenção com Confirmação Humana e RAG Multi-Turno
   if (formChatSend) {
     formChatSend.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -161,20 +162,26 @@ document.addEventListener('DOMContentLoaded', () => {
       chatMessages.appendChild(userDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
+      // Adicionar ao histórico de conversação
+      chatHistoryList.push({ role: 'user', content: messageText });
+
       chatInput.value = '';
-      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--blue); margin-top:8px;">Consultando banco de dados (RAG) e analisando intenção...</div>';
+      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--blue); margin-top:8px;">Consultando banco de dados (RAG) e analisando histórico...</div>';
 
       try {
         const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
         const res = await fetch('/api/ollama/intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: messageText, model: model })
+          body: JSON.stringify({ message: messageText, history: chatHistoryList, model: model })
         });
 
         if (res.ok) {
           const data = await res.json();
           const proposal = data.proposal || {};
+          if (proposal.explanation) {
+            chatHistoryList.push({ role: 'assistant', content: proposal.explanation });
+          }
           renderActionProposal(proposal);
         } else {
           proposalContainer.innerHTML = '<div style="color:var(--red); font-size:0.8rem;">Erro ao interpretar instrução.</div>';
@@ -311,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
           okDiv.innerHTML = `<strong>✅ Sucesso!</strong> Registro gravado no banco de dados com sucesso.`;
           chatMessages.appendChild(okDiv);
           chatMessages.scrollTop = chatMessages.scrollHeight;
+          chatHistoryList = []; // Resetar histórico após conclusão com sucesso
           await loadDashboardData();
         } else {
           proposalContainer.innerHTML = '<div style="color:var(--red); font-size:0.8rem;">Erro ao gravar no banco.</div>';

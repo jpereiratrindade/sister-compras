@@ -24,19 +24,20 @@ def fetch_ollama_models():
         print(f"[Ollama] Erro ao consultar modelos locais: {e}")
         return ["qwen2.5:14b", "qwen2.5:7b", "llama3:8b"]
 
-def generate_ollama_intent(model_name, user_message, current_context_data):
-    system_prompt = """Você é o Assistente RAG de Inteligência do SisTer-Compras com acesso em tempo real ao Banco de Dados.
-Sua missão é interpretar instruções do usuário, mapear semanticamente com os registros existentes no banco de dados (RAG) e validar a integridade dos dados.
+def generate_ollama_intent(model_name, user_message, history, current_context_data):
+    system_prompt = """Você é o Assistente RAG de Inteligência do SisTer-Compras com ACESSO AO HISTÓRICO COMPLETO DA CONVERSA e ao Banco de Dados.
+Sua missão é extrair E MANTER acumulados todos os dados informados pelo usuário ao longo de TODAS AS MENSAGENS da conversa (Multi-Turn Chat).
 
-REGRAS DE VALIDAÇÃO E AÇÃO:
-1. Se o usuário quiser cadastrar necessidade, adicionar cotação, registrar parecer de decisão ou atualizar status E todos os dados necessários estiverem presentes (ex: para cotação precisa de need_id/item, fornecedor e valor), responda com "action": "create_need" | "add_quote" | "make_decision" | "update_status".
-2. Se faltarem dados essenciais para concluir o registro (ex: falta a Categoria, Prioridade ou Responsável), responda com "action": "ask_clarification", forneça a explicação do que falta e INCLUA uma lista de opções sugestivas na chave "options" (ex: ["Energia & Infraestrutura", "Equipamentos Científicos", "Componentes Eletrônicos", "Consumo & Reativos", "Serviços & Licenças"]).
-3. Utilize os dados do banco (RAG) para associar descrições vagas.
+REGRAS RAG & ACÚMULO DE PARÂMETROS:
+1. LEIA O HISTÓRICO COMPLETO DA CONVERSA para não perder o título, quantidade, prioridade ou valores informados em mensagens anteriores.
+2. Se em uma mensagem anterior o usuário informou o título (ex: "15 coolers para RPi 5") e agora selecionou a categoria (ex: "Componentes Eletrônicos"), MANTENHA O TÍTULO ("Coolers para RPi 5") E A QUANTIDADE (15) ACUMULADOS!
+3. Se todos os dados necessários estiverem acumulados, responda com "action": "create_need" | "add_quote" | "make_decision" | "update_status".
+4. Se ainda faltarem dados essenciais, responda com "action": "ask_clarification", traga o que falta na "explanation" e opções na chave "options".
 
 RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
   "action": "create_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
-  "explanation": "Descrição clara para o usuário ou pergunta de esclarecimento sobre dados faltantes",
+  "explanation": "Descrição clara ou pergunta de esclarecimento sobre dados faltantes",
   "options": ["Opção 1", "Opção 2"],
   "params": {
     "title": "...",
@@ -54,7 +55,15 @@ RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 }
 """
 
-    prompt = f"Instrução do Usuário: '{user_message}'\nEstado Atual do Banco de Dados (RAG): {json.dumps(current_context_data, ensure_ascii=False)}"
+    history_text = ""
+    if history and len(history) > 0:
+        history_text = "\n--- HISTÓRICO DAS MENSAGENS ANTERIORES ---\n"
+        for item in history:
+            role = "Usuário" if item.get('role') == 'user' else "Assistente"
+            history_text += f"{role}: {item.get('content')}\n"
+        history_text += "--- FIM DO HISTÓRICO ---\n"
+
+    prompt = f"{history_text}\nMensagem Atual do Usuário: '{user_message}'\nEstado Atual do Banco de Dados (RAG): {json.dumps(current_context_data, ensure_ascii=False)}"
     payload = {
         "model": model_name,
         "system": system_prompt,
@@ -426,8 +435,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == '/api/ollama/intent':
             user_message = payload.get('message', '')
+            history = payload.get('history', [])
             model_name = payload.get('model', 'qwen2.5:14b')
-            proposal = generate_ollama_intent(model_name, user_message, data)
+            proposal = generate_ollama_intent(model_name, user_message, history, data)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
