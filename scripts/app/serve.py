@@ -161,7 +161,6 @@ def generate_print_html(data, filter_ids=None):
     for need in needs:
         dec = decisions.get(need['id'])
         alt_title = "Aguardando Parecer"
-        supplier = "N/A"
         price_str = "R$ 0,00"
         subtotal_str = "R$ 0,00"
         
@@ -170,7 +169,6 @@ def generate_print_html(data, filter_ids=None):
             for alt in need['alternatives']:
                 if alt['id'] == dec.get('selected_alternative_id'):
                     alt_title = alt.get('title', 'Alternativa Aprovada')
-                    supplier = alt.get('supplier_or_source', 'N/A')
                     if alt.get('prices') and len(alt['prices']) > 0:
                         unit_p = alt['prices'][0].get('unit_price', 0.0)
                         subtotal = unit_p * need.get('quantity', 1)
@@ -192,7 +190,6 @@ def generate_print_html(data, filter_ids=None):
             <td><strong>{need.get('id')}</strong></td>
             <td>{need.get('title')}<br><small style="color:#666">{alt_title}</small></td>
             <td>{need.get('category')}</td>
-            <td>{supplier}</td>
             <td>{need.get('quantity')}</td>
             <td>{price_str}</td>
             <td><strong>{subtotal_str}</strong></td>
@@ -201,7 +198,7 @@ def generate_print_html(data, filter_ids=None):
         """
 
     if not items_rows:
-        items_rows = "<tr><td colspan='8' style='text-align:center; padding:20px;'>*Nenhum item selecionado.*</td></tr>"
+        items_rows = "<tr><td colspan='7' style='text-align:center; padding:20px;'>*Nenhum item selecionado.*</td></tr>"
 
     db_type = "PostgreSQL" if db_manager.use_pg else "Armazenamento Local"
 
@@ -251,7 +248,6 @@ def generate_print_html(data, filter_ids=None):
                 <th>Código</th>
                 <th>Item / Especificação</th>
                 <th>Categoria</th>
-                <th>Fornecedor Aprovado</th>
                 <th>Qtd</th>
                 <th>Vl. Unitário</th>
                 <th>Subtotal</th>

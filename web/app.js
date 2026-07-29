@@ -790,7 +790,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><strong>${need.id}</strong></td>
         <td>${need.title}<br><small style="color:var(--muted);">${altTitle}</small></td>
         <td>${need.category}</td>
-        <td>${supplier}</td>
         <td>${need.quantity}</td>
         <td><strong>${subtotalDisplay}</strong></td>
         <td><span class="status-pill ${need.status === 'Entregue' ? 'healthy' : (need.status === 'Adquirida' ? 'healthy' : 'degraded')}">${need.status}</span></td>
