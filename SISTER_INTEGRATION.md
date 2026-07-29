@@ -1,10 +1,9 @@
-# Integração candidata com SisTer Nexo
+# Integração com SisTer Nexo
 
 ## Estado
 
-Este repositório é candidato à integração federada com o SisTer Nexo. Ele ainda
-não é iniciado pelo `SisTer/scripts/run_all.sh`, e **Nexo-Compras** é apenas o
-nome de produto em avaliação.
+Este repositório integra-se ao SisTer Nexo com o nome de produto
+**Nexo-Compras**. O identificador `sister_compras` permanece estável.
 
 ## Descoberta
 
@@ -22,12 +21,14 @@ Nenhuma integração pode compartilhar tabelas ou assumir que um identificador
 local existe no outro banco. O intercâmbio deverá usar contrato versionado,
 identidade autenticada, proveniência e referências estáveis.
 
-## Bloqueios atuais
+## Operação
 
-- `55435` colide com o PostgreSQL de teste do SisTer;
-- contrato e aplicação estão em versões diferentes;
-- credenciais padrão ainda aparecem no script de execução;
-- saúde sanitizada e identidade federada não foram implementadas.
+- aplicação em `127.0.0.1:8016`;
+- PostgreSQL exclusivo em `127.0.0.1:55440`;
+- acesso aninhado em `/integrations/nexo/compras/`;
+- contrato `nexo-compras.integration/1.0.0`;
+- identidade recebida pelos cabeçalhos `X-Sister-*` encaminhados pelo Nexo;
+- contexto de projetos consultado pela API do Nexo.
 
 Consulte
 [`adr/ADR-005-nexo-compras-federated-boundary.md`](adr/ADR-005-nexo-compras-federated-boundary.md).

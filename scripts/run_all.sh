@@ -5,7 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 MODE="${1:-dev}"
-PORT="${2:-8002}"
+if [[ ! -f "${ROOT_DIR}/.env" ]]; then
+    echo "Configuração ausente: copie .env.example para .env e defina COMPRAS_DB_PASSWORD." >&2
+    exit 2
+fi
+set -a
+source "${ROOT_DIR}/.env"
+set +a
+
+PORT="${2:-${COMPRAS_APP_PORT:-8016}}"
+export NEXO_COMPRAS_HOST="${NEXO_COMPRAS_HOST:-127.0.0.1}"
+export DATABASE_URL="postgresql://${COMPRAS_DB_USER}:${COMPRAS_DB_PASSWORD}@127.0.0.1:${COMPRAS_DB_PORT}/${COMPRAS_DB_NAME}"
 
 echo "============================================================"
 echo "          SisTer-Compras — Script Orquestrador              "
@@ -18,18 +28,19 @@ echo ""
 
 cd "${ROOT_DIR}"
 
-# Garantir container PostgreSQL dedicado 'sister-compras-db' na porta 55435
-if command -v podman >/dev/null 2>&1; then
-    if ! podman ps --format "{{.Names}}" | grep -q "^sister-compras-db$"; then
-        echo "[+] Garantindo banco de dados PostgreSQL independente (sister-compras-db:55435)..."
-        podman start sister-compras-db 2>/dev/null || podman run -d --name sister-compras-db -e POSTGRES_DB=sister_compras -e POSTGRES_USER=sister -e POSTGRES_PASSWORD=sister -p 127.0.0.1:55435:5432 docker.io/library/postgres:17-alpine || true
+echo "[+] Garantindo PostgreSQL exclusivo em 127.0.0.1:${COMPRAS_DB_PORT}..."
+podman compose up -d compras-db
+for attempt in $(seq 1 30); do
+    if podman exec "${COMPRAS_DB_CONTAINER}" \
+        sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null 2>&1; then
+        break
     fi
-elif command -v docker >/dev/null 2>&1; then
-    if ! docker ps --format "{{.Names}}" | grep -q "^sister-compras-db$"; then
-        echo "[+] Garantindo banco de dados PostgreSQL independente (sister-compras-db:55435)..."
-        docker start sister-compras-db 2>/dev/null || docker run -d --name sister-compras-db -e POSTGRES_DB=sister_compras -e POSTGRES_USER=sister -e POSTGRES_PASSWORD=sister -p 127.0.0.1:55435:5432 postgres:17-alpine || true
+    if [[ "${attempt}" == "30" ]]; then
+        echo "PostgreSQL do Nexo-Compras não ficou pronto." >&2
+        exit 3
     fi
-fi
+    sleep 1
+done
 
 # 1. Configurar build CMake
 echo "[1/5] Configurando build CMake..."
@@ -67,10 +78,34 @@ echo ""
 echo "============================================================"
 echo "   Todos os testes e validações passaram com SUCESSO!     "
 echo "============================================================"
-echo "Iniciando servidor da interface Web do SisTer-Compras em http://localhost:${PORT}"
+echo "Iniciando Nexo-Compras em http://${NEXO_COMPRAS_HOST}:${PORT}"
 echo "Dados 100% persistentes no Banco de Dados / Armazenamento em Disco."
-echo "Pressione Ctrl+C para encerrar."
+if [[ -z "${SISTER_HOME:-}" ]]; then
+    echo "Pressione Ctrl+C para encerrar."
+else
+    echo "Processo HTTP será mantido em segundo plano pelo orquestrador do SisTer."
+fi
 echo "============================================================"
 echo ""
 
-python3 scripts/app/serve.py "${PORT}"
+if [[ -z "${SISTER_HOME:-}" ]]; then
+    exec python3 scripts/app/serve.py "${PORT}"
+fi
+
+mkdir -p .run
+python3 scripts/app/serve.py "${PORT}" >>.run/nexo-compras.log 2>&1 &
+SERVER_PID=$!
+echo "${SERVER_PID}" >.run/nexo-compras.pid
+for attempt in $(seq 1 30); do
+    if curl --fail --silent "http://127.0.0.1:${PORT}/api/health" >/dev/null; then
+        echo "Nexo-Compras saudável com PID ${SERVER_PID}."
+        exit 0
+    fi
+    if ! kill -0 "${SERVER_PID}" 2>/dev/null; then
+        echo "Nexo-Compras encerrou antes de ficar saudável." >&2
+        exit 4
+    fi
+    sleep 1
+done
+echo "Nexo-Compras não ficou saudável." >&2
+exit 5

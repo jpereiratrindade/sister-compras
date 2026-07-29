@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS needs (
     responsible VARCHAR(255) NOT NULL,
     estimated_budget NUMERIC(14, 2) DEFAULT 0.0,
     description TEXT,
+    research_activity_id VARCHAR(64),
+    activity_id VARCHAR(64),
     deadline DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,3 +91,10 @@ CREATE INDEX IF NOT EXISTS idx_requirements_need ON requirements(need_id);
 CREATE INDEX IF NOT EXISTS idx_alternatives_need ON alternatives(need_id);
 CREATE INDEX IF NOT EXISTS idx_price_observations_alt ON price_observations(alternative_id);
 CREATE INDEX IF NOT EXISTS idx_evidences_alt ON evidences(alternative_id);
+
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS research_activity_id VARCHAR(64);
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS activity_id VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_needs_research_activity
+    ON needs(research_activity_id);
+CREATE INDEX IF NOT EXISTS idx_needs_activity
+    ON needs(activity_id);

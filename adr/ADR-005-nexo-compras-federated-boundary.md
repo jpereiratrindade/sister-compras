@@ -1,6 +1,6 @@
 # ADR-005 — Fronteira federada entre Nexo e Compras
 
-- Estado: proposto
+- Estado: aceito e implementado
 - Data: 2026-07-29
 
 ## Contexto
@@ -17,8 +17,8 @@ necessidade foi especificada, comparada, decidida e atendida.
 ## Proposta
 
 Preparar este produto como contexto especializado ligado ao Nexo. O nome
-**Nexo-Compras** será avaliado durante a integração, sem renomear ainda o
-repositório, o identificador `sister_compras`, o banco ou os contratos.
+**Nexo-Compras** é adotado como nome de produto. Repositório e identificador
+`sister_compras` são preservados para compatibilidade.
 
 O Nexo será autoridade para `project_id`, `research_activity_id` e
 `activity_id`. O Compras será autoridade para `need_id`, requisitos,
@@ -45,14 +45,15 @@ Do Compras para Nexo:
 Fornecedores, cotações detalhadas, documentos comerciais, conversas e auditoria
 bruta permanecem no Compras.
 
-## Impedimentos
+## Implementação
 
-- a porta PostgreSQL `55435` colide com o ambiente de teste do SisTer;
-- o contrato aceita versões `0.1.0/0.2.0`, mas a aplicação está em `0.4.0`;
-- o script de execução ainda contém credenciais padrão versionadas;
-- saúde sanitizada, proxy e identidade federada ainda não existem;
-- dados operacionais precisam ser separados dos exemplos do repositório;
-- não há plano aprovado para compatibilidade do nome.
+- porta `55440` e volume `nexo_compras_dev_pgdata`;
+- contrato `nexo-compras.integration/1.0.0`;
+- configuração secreta em `.env` não versionado;
+- saúde sanitizada em `/api/health`;
+- proxy autenticado do Nexo em `/integrations/nexo/compras/`;
+- contexto do Nexo consumido por `/api/nexo/context`;
+- dados operacionais ignorados e exemplo sanitizado versionado.
 
 ## Critérios de aceite
 

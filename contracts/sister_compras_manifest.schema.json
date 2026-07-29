@@ -12,7 +12,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "enum": ["0.1.0", "0.2.0"]
+      "enum": ["0.1.0", "0.2.0", "0.4.0"]
     },
     "project_id": {
       "type": "string",
@@ -53,6 +53,12 @@
         "status": {
           "type": "string",
           "enum": ["Rascunho", "Especificada", "Em analise", "Decidida", "Atendida", "Cancelada"]
+        },
+        "research_activity_id": {
+          "type": "string"
+        },
+        "activity_id": {
+          "type": "string"
         },
         "requirements": {
           "type": "array",

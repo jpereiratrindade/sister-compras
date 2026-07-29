@@ -1,30 +1,35 @@
 # SisTer-Compras
 
-**SisTer-Compras** é um subsistema federado autônomo do ecossistema **SisTer** desenvolvido em **C++20** e **Python/REST** para governança de necessidades, especificação de requisitos, cotações, evidências de proveniência, suporte à decisão técnica supervisionada por IA conversacional e gestão do ciclo de vida de aquisições em projetos de pesquisa.
+**Nexo-Compras** é um contexto autônomo do **SisTer Nexo**, desenvolvido em
+**C++20** e **Python/REST** para governança de necessidades, especificação de
+requisitos, cotações, evidências de proveniência, suporte à decisão técnica
+supervisionada por IA conversacional e gestão do ciclo de vida de aquisições em
+projetos de pesquisa.
 
-## Evolução proposta: Nexo-Compras
+## Integração Nexo-Compras
 
-O SisTer Nexo passa a ser a autoridade para projetos, ações e atividades de
-pesquisa. Este produto é candidato a integrar-se como contexto especializado,
-recebendo referências dessas atividades e devolvendo estados resumidos de
-necessidades, decisões e atendimento.
+O SisTer Nexo é a autoridade para projetos, ações e atividades de pesquisa.
+Este produto integra-se a ele como contexto especializado, recebendo
+referências dessas atividades e devolvendo estados resumidos de necessidades,
+decisões e atendimento.
 
-**Nexo-Compras** é um nome em avaliação, não uma renomeação já executada.
+**Nexo-Compras** é o nome de produto integrado; o identificador técnico
+`sister_compras` é preservado por compatibilidade.
 Compras continuará com processo, banco, contratos e regras próprios. A proposta,
 os dados compartilháveis e os impedimentos estão na
 [ADR-005](adr/ADR-005-nexo-compras-federated-boundary.md) e em
 [SISTER_INTEGRATION.md](SISTER_INTEGRATION.md).
 
-Antes da integração operacional será necessário corrigir a colisão da porta
-PostgreSQL `55435`, alinhar o contrato à aplicação `0.4.0`, remover credenciais
-padrão versionadas e implementar identidade federada e saúde sanitizada.
+A integração usa `nexo-compras.integration/1.0.0` e API contratual com o Nexo.
+O SisTer autentica o acesso ao Nexo, e o Nexo encaminha a identidade ao Compras.
+Nenhuma tabela ou credencial é compartilhada.
 
 ```text
-projetos e subsistemas do SisTer
-              ↓
-     necessidades e recursos
-              ↓
-        SisTer-Compras
+              SisTer
+                ↓
+       SisTer Nexo (projetos)
+                ↓
+          Nexo-Compras
               ↓
 especificação, evidências, cotações,
 decisão técnica, lista de compras e entregas
@@ -42,7 +47,7 @@ As tags seguem o padrão anotado Semantic Versioning:
 
 ```bash
 # Criar tag de release v0.4.0
-git tag -a v0.4.0 -m "release: v0.4.0 - Banco PostgreSQL 17 Dedicado (sister-compras-db:55435), RAG Multi-Turno, Edição update_need e Trava de Persistência"
+git tag -a v0.4.0 -m "release: v0.4.0 - Nexo-Compras federado"
 
 # Enviar branch principal e tags para o GitHub
 git push origin main --tags
@@ -52,7 +57,7 @@ git push origin main --tags
 
 ## Recursos da Versão 0.4.0
 
-1. **Banco de Dados PostgreSQL 17 Dedicado e Independente (`sister-compras-db:55435`):**
+1. **Banco PostgreSQL 17 dedicado (`nexo-compras-dev-db:55440`):**
    - Container Podman/Docker exclusivo e isolado para o SisTer-Compras.
    - Sincronização nativa SQL (`UPSERT`) em tempo real para todas as necessidades, cotações e pareceres de decisão.
 2. **Assistente Conversacional RAG Multi-Turno (`qwen2.5:14b`):**
@@ -73,10 +78,14 @@ git push origin main --tags
 Para compilar o projeto C++20, rodar todos os testes automatizados, validar contratos de governança, subir o banco de dados PostgreSQL independente e iniciar a **Interface Web** em um único comando:
 
 ```bash
-./scripts/run_all.sh dev 8002
+./scripts/run_all.sh dev 8016
 ```
 
-Acesse a interface web em: **`http://localhost:8002`**
+Acesse pelo SisTer autenticado em:
+**`http://localhost:8000/integrations/nexo/compras/`**.
+
+A origem `http://127.0.0.1:8016` permanece em loopback e recusa acesso sem a
+identidade federada.
 
 ---
 

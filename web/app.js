@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const integrationPrefix = window.location.pathname.startsWith('/integrations/nexo/compras')
+    ? '/integrations/nexo/compras'
+    : '';
+  const apiUrl = path => `${integrationPrefix}${path}`;
   const tabs = document.querySelectorAll('.nav-link');
   const tabContents = document.querySelectorAll('.tab-content');
   const refreshBtn = document.getElementById('refresh-btn');
@@ -179,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadOllamaModels() {
     if (!selectOllama) return;
     try {
-      const res = await fetch('/api/ollama/models');
+      const res = await fetch(apiUrl('/api/ollama/models'));
       if (res.ok) {
         const data = await res.json();
         if (data.models && data.models.length > 0) {
@@ -275,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const ids = Array.from(checked).map(c => c.dataset.needId).join(',');
-      window.open(`/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`, '_blank');
+      window.open(apiUrl(`/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`), '_blank');
     });
   }
 
@@ -302,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     try {
-      const res = await fetch('/api/needs/delete', {
+      const res = await fetch(apiUrl('/api/needs/delete'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ need_id: needId })
@@ -333,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const res = await fetch('/api/needs/update', {
+        const res = await fetch(apiUrl('/api/needs/update'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -361,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const res = await fetch('/api/project/update', {
+        const res = await fetch(apiUrl('/api/project/update'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -407,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
-        const res = await fetch('/api/ollama/intent', {
+        const res = await fetch(apiUrl('/api/ollama/intent'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: messageText, history: chatHistoryList, model: model })
@@ -551,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (action === 'update_status') targetUrl = '/api/needs/status';
 
       try {
-        const res = await fetch(targetUrl, {
+        const res = await fetch(apiUrl(targetUrl), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bodyPayload)
@@ -589,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalAi.showModal();
 
     try {
-      const res = await fetch('/api/ollama/analyze', {
+      const res = await fetch(apiUrl('/api/ollama/analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ need_id: needId, model: model, mode: 'analyze' })
@@ -623,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modalAi.showModal();
 
       try {
-        const res = await fetch('/api/ollama/analyze', {
+        const res = await fetch(apiUrl('/api/ollama/analyze'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -650,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update Status of Need (Purchased / Delivered)
   window.updateNeedStatus = async function(needId, newStatus) {
     try {
-      const res = await fetch('/api/needs/status', {
+      const res = await fetch(apiUrl('/api/needs/status'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ need_id: needId, status: newStatus })
@@ -693,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const res = await fetch('/api/needs', {
+        const res = await fetch(apiUrl('/api/needs'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -726,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const res = await fetch('/api/alternatives', {
+        const res = await fetch(apiUrl('/api/alternatives'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -758,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const res = await fetch('/api/decisions', {
+        const res = await fetch(apiUrl('/api/decisions'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -778,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadDashboardData() {
     try {
-      const response = await fetch('/api/data');
+      const response = await fetch(apiUrl('/api/data'));
       if (!response.ok) {
         throw new Error('Falha ao obter dados');
       }

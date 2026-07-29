@@ -10,7 +10,8 @@ import json
 import re
 from db_repository import db_manager
 
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8002
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8016
+HOST = os.environ.get("NEXO_COMPRAS_HOST", "127.0.0.1")
 WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../web'))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
@@ -229,7 +230,7 @@ def generate_print_html(data, filter_ids=None):
     <button onclick="window.print()" style="float:right; padding:10px 20px; background:#062d55; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Imprimir / Salvar PDF</button>
     <div class="header">
         <div>
-            <span style="font-size:12px; font-weight:bold; color:#1c9b98;">SISTER-COMPRAS · MANIFESTO DE AQUISIÇÃO</span>
+            <span style="font-size:12px; font-weight:bold; color:#1c9b98;">NEXO-COMPRAS · MANIFESTO DE AQUISIÇÃO</span>
             <h1>Lista Oficial de Compras do Projeto {'(Lote Selecionado)' if filter_ids else ''}</h1>
         </div>
         <div style="text-align:right;">
@@ -283,11 +284,94 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
+    def identity(self):
+        subject = self.headers.get("X-Sister-Subject", "").strip()
+        if not subject:
+            return None
+        return {
+            "subject": subject,
+            "name": self.headers.get("X-Sister-Name", subject).strip() or subject,
+            "email": self.headers.get("X-Sister-Email", "").strip(),
+            "role": self.headers.get("X-Sister-Role", "user").strip() or "user",
+        }
+
+    def send_json(self, status, payload):
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "same-origin")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def require_identity(self):
+        identity = self.identity()
+        if identity is None:
+            self.send_json(401, {
+                "status": "error",
+                "detail": "Acesso autenticado pelo SisTer é obrigatório."
+            })
+        return identity
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
+        if path == "/api/health":
+            database_ok = db_manager.healthy()
+            self.send_json(200 if database_ok else 503, {
+                "status": "ok" if database_ok else "degraded",
+                "service": "nexo-compras",
+                "system_id": "sister_compras",
+                "version": "0.4.0",
+                "database": "ok" if database_ok else "unavailable",
+            })
+            return
+        if path == "/api/integration/manifest":
+            self.send_json(200, {
+                "contract_version": "1.0.0",
+                "system_id": "sister_compras",
+                "parent_system_id": "sister_nexo",
+                "product_name": "Nexo-Compras",
+                "access_url": "/integrations/nexo/compras/",
+                "access_mode": "nexo_authenticated_reverse_proxy",
+                "database_ownership": "exclusive",
+                "capabilities": [
+                    "needs", "requirements", "quotes", "decisions", "fulfillment"
+                ],
+            })
+            return
+
+        identity = self.require_identity()
+        if identity is None:
+            return
+
+        if path == '/api/me':
+            self.send_json(200, identity)
+            return
+        if path == '/api/nexo/context':
+            request = urllib.request.Request(
+                "http://127.0.0.1:8015/api/v1/integrations/compras/context",
+                headers={
+                    "X-Sister-Subject": identity["subject"],
+                    "X-Sister-Name": identity["name"],
+                    "X-Sister-Email": identity["email"],
+                    "X-Sister-Role": identity["role"],
+                    "User-Agent": "Nexo-Compras/0.4.0",
+                },
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=3) as response:
+                    self.send_json(200, json.loads(response.read().decode("utf-8")))
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                self.send_json(502, {
+                    "status": "error",
+                    "detail": f"Contexto de projetos do Nexo indisponível: {error}",
+                })
+            return
         if path == '/api/data':
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -322,6 +406,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        identity = self.require_identity()
+        if identity is None:
+            return
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
@@ -597,9 +684,9 @@ class ReuseTCPServer(socketserver.TCPServer):
 if __name__ == '__main__':
     os.chdir(WEB_DIR)
     socketserver.TCPServer.allow_reuse_address = True
-    with ReuseTCPServer(("", PORT), CustomHandler) as httpd:
-        print(f"[SisTer-Compras Web Server] Executando em http://localhost:{PORT}")
+    with ReuseTCPServer((HOST, PORT), CustomHandler) as httpd:
+        print(f"[Nexo-Compras Web Server] Executando em http://{HOST}:{PORT}")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n[SisTer-Compras Web Server] Encerrado.")
+            print("\n[Nexo-Compras Web Server] Encerrado.")

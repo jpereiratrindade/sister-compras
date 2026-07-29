@@ -3,6 +3,7 @@ build-*/
 dist/
 out/
 .cache/
+.run/
 .venv/
 venv/
 compile_commands.json
@@ -16,3 +17,4 @@ compile_commands.json
 __pycache__/
 *.py[cod]
 storage/compras_data.json
+.env

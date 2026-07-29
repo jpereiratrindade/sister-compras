@@ -22,6 +22,8 @@
       "responsible": "Equipe de Pesquisa",
       "estimated_budget": 0.0,
       "description": "Exemplo para desenvolvimento; não representa demanda real.",
+      "research_activity_id": "AP-EXEMPLO-01",
+      "activity_id": "ATV-2026-0001",
       "requirements": [],
       "alternatives": []
     }

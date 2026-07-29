@@ -1,0 +1,23 @@
+services:
+  compras-db:
+    image: postgres:17-alpine
+    container_name: ${COMPRAS_DB_CONTAINER:-nexo-compras-dev-db}
+    environment:
+      POSTGRES_DB: ${COMPRAS_DB_NAME:-sister_compras}
+      POSTGRES_USER: ${COMPRAS_DB_USER:-sister}
+      POSTGRES_PASSWORD: ${COMPRAS_DB_PASSWORD:?defina COMPRAS_DB_PASSWORD no arquivo .env}
+    ports:
+      - "127.0.0.1:${COMPRAS_DB_PORT:-55440}:5432"
+    volumes:
+      - compras_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  compras_pgdata:
+    name: ${COMPRAS_DB_VOLUME:-nexo_compras_dev_pgdata}

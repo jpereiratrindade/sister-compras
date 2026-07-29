@@ -24,26 +24,7 @@ class DatabaseManager:
         db_url = os.environ.get("DATABASE_URL")
         if db_url:
             return db_url
-
-        candidates = [
-            "postgresql://sister:sister@127.0.0.1:55435/sister_compras",
-            "postgresql://sister:sister@127.0.0.1:55434/sister",
-            "postgresql://postgres:postgres@127.0.0.1:5432/sister_compras",
-            "postgresql://postgres@127.0.0.1:5432/sister_compras",
-            f"postgresql://{os.environ.get('PGUSER', 'postgres')}@{os.environ.get('PGHOST', 'localhost')}:{os.environ.get('PGPORT', '5432')}/{os.environ.get('PGDATABASE', 'sister_compras')}"
-        ]
-
-        if not HAS_PSYCOPG:
-            return candidates[0]
-
-        for cand in candidates:
-            try:
-                with psycopg.connect(cand, connect_timeout=1) as conn:
-                    return cand
-            except Exception:
-                continue
-
-        return candidates[0]
+        return None
 
     def _try_init_pg(self):
         try:
@@ -59,6 +40,17 @@ class DatabaseManager:
         except Exception as e:
             self.use_pg = False
             print(f"[DatabaseManager] PostgreSQL não ativo ({e}). Utilizando armazenamento local.")
+
+    def healthy(self):
+        if not self.use_pg or not HAS_PSYCOPG or not self.conn_str:
+            return False
+        try:
+            with psycopg.connect(self.conn_str, connect_timeout=2) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    return cur.fetchone()[0] == 1
+        except Exception:
+            return False
 
     def load_data(self):
         if self.use_pg:
@@ -80,7 +72,7 @@ class DatabaseManager:
                             })
                         
                         # Carregar necessidades
-                        cur.execute("SELECT id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description FROM needs ORDER BY id ASC")
+                        cur.execute("SELECT id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description, research_activity_id, activity_id FROM needs ORDER BY id ASC")
                         needs_map = {}
                         for row in cur.fetchall():
                             need_item = {
@@ -89,6 +81,8 @@ class DatabaseManager:
                                 "status": row[6], "responsible": row[7],
                                 "estimated_budget": float(row[8]) if row[8] is not None else 0.0,
                                 "description": row[9] or "",
+                                "research_activity_id": row[10],
+                                "activity_id": row[11],
                                 "requirements": [], "alternatives": []
                             }
                             needs_map[row[0]] = need_item
@@ -165,8 +159,8 @@ class DatabaseManager:
                         # 2. Sincronizar Necessidades
                         for need in data.get("needs", []):
                             cur.execute("""
-                                INSERT INTO needs (id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                INSERT INTO needs (id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description, research_activity_id, activity_id)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (id) DO UPDATE SET
                                     title = EXCLUDED.title,
                                     category = EXCLUDED.category,
@@ -175,13 +169,17 @@ class DatabaseManager:
                                     status = EXCLUDED.status,
                                     responsible = EXCLUDED.responsible,
                                     estimated_budget = EXCLUDED.estimated_budget,
-                                    description = EXCLUDED.description;
+                                    description = EXCLUDED.description,
+                                    research_activity_id = EXCLUDED.research_activity_id,
+                                    activity_id = EXCLUDED.activity_id;
                             """, (
                                 need.get("id"), need.get("project_id", "PROJ-PESQUISA-01"),
                                 need.get("title"), need.get("category"), need.get("quantity", 1),
                                 need.get("priority", "Essencial"), need.get("status", "Especificada"),
                                 need.get("responsible", "Equipe de Pesquisa"), float(need.get("estimated_budget", 0.0)),
-                                need.get("description", "")
+                                need.get("description", ""),
+                                need.get("research_activity_id"),
+                                need.get("activity_id")
                             ))
 
                         # 3. Sincronizar Alternativas

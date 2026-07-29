@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sister.local/contracts/nexo_compras_integration.schema.json",
+  "title": "Nexo-Compras Integration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "system_id",
+    "parent_system_id",
+    "product_name",
+    "access_url",
+    "access_mode",
+    "database_ownership",
+    "capabilities"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0.0"},
+    "system_id": {"const": "sister_compras"},
+    "parent_system_id": {"const": "sister_nexo"},
+    "product_name": {"const": "Nexo-Compras"},
+    "access_url": {"const": "/integrations/nexo/compras/"},
+    "access_mode": {"const": "nexo_authenticated_reverse_proxy"},
+    "database_ownership": {"const": "exclusive"},
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["needs", "requirements", "quotes", "decisions", "fulfillment"]
+      }
+    }
+  }
+}
