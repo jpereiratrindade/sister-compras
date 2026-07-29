@@ -7,30 +7,11 @@ import urllib.error
 import sys
 import os
 import json
+from db_repository import db_manager
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8002
 WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../web'))
-STORAGE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../storage/compras_data.json'))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-
-def load_data():
-    if os.path.exists(STORAGE_FILE):
-        try:
-            with open(STORAGE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {
-        "version": "0.2.0",
-        "projects": [{"id": "PROJ-PESQUISA-01", "name": "Projeto de Pesquisa e Desenvolvimento Tecnológico", "lead_researcher": "Pesquisador Responsável"}],
-        "needs": [],
-        "decisions": []
-    }
-
-def save_data(data):
-    os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
-    with open(STORAGE_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def fetch_ollama_models():
     try:
@@ -138,6 +119,8 @@ def generate_print_html(data, filter_ids=None):
     if not items_rows:
         items_rows = "<tr><td colspan='8' style='text-align:center; padding:20px;'>*Nenhum item selecionado.*</td></tr>"
 
+    db_type = "PostgreSQL" if db_manager.use_pg else "Armazenamento Local"
+
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -174,7 +157,8 @@ def generate_print_html(data, filter_ids=None):
         <strong>Projeto:</strong> {project.get('name')} ({project.get('id')})<br>
         <strong>Pesquisador Responsável:</strong> {project.get('lead_researcher')}<br>
         <strong>Itens no Lote:</strong> {len(needs)} item(ns)<br>
-        <strong>Formato de Integração:</strong> Manifesto por Contrato (v0.2.0)
+        <strong>Fonte de Persistência:</strong> {db_type}<br>
+        <strong>Formato de Integração:</strong> Manifesto por Contrato (v0.3.0)
     </div>
 
     <table>
@@ -226,7 +210,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            data = load_data()
+            data = db_manager.load_data()
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
             return
         elif path == '/api/ollama/models':
@@ -245,7 +229,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
-            data = load_data()
+            data = db_manager.load_data()
             filter_ids = None
             if 'ids' in query and query['ids']:
                 filter_ids = [i.strip() for i in query['ids'][0].split(',') if i.strip()]
@@ -264,7 +248,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(400, "JSON invalido")
             return
 
-        data = load_data()
+        data = db_manager.load_data()
 
         if self.path == '/api/needs':
             new_id = f"NED-00{len(data.get('needs', [])) + 1}"
@@ -276,7 +260,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             if 'alternatives' not in payload:
                 payload['alternatives'] = []
             data.setdefault('needs', []).append(payload)
-            save_data(data)
+            db_manager.save_data(data)
 
             self.send_response(201)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -295,7 +279,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     found = True
                     break
             if found:
-                save_data(data)
+                db_manager.save_data(data)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -336,7 +320,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     break
 
             if need_found:
-                save_data(data)
+                db_manager.save_data(data)
                 self.send_response(201)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -364,7 +348,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     need['status'] = 'Decidida'
 
             data.setdefault('decisions', []).append(dec_item)
-            save_data(data)
+            db_manager.save_data(data)
 
             self.send_response(201)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -383,9 +367,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     target_need = need
                     break
 
-            if not target_need:
+            if not target_need and mode != 'specify':
                 self.send_error(404, "Necessidade nao encontrada para analise")
                 return
+
+            if mode == 'specify' and not target_need:
+                target_need = {"title": "Recurso de Pesquisa", "category": "Geral", "quantity": 1}
 
             analysis_text = generate_ollama_analysis(model_name, target_need, mode=mode)
 
