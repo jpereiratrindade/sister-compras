@@ -39,6 +39,11 @@ python3 scripts/validate_tool_contracts.py
 echo "[5/5] Executando demonstração de domínio e gerando relatórios..."
 ./build/sister_compras demo
 
+# Liberar porta se houver processo anterior travado
+if command -v fuser >/dev/null 2>&1; then
+    fuser -k "${PORT}/tcp" >/dev/null 2>&1 || true
+fi
+
 echo ""
 echo "============================================================"
 echo "   Todos os testes e validações passaram com SUCESSO!     "
