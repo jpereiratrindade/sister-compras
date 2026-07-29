@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modais
   const modalNeed = document.getElementById('modal-need');
+  const modalEditNeed = document.getElementById('modal-edit-need');
   const modalAlternative = document.getElementById('modal-alternative');
   const modalDecision = document.getElementById('modal-decision');
   const modalAi = document.getElementById('modal-ai-analysis');
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const checkAllShopping = document.getElementById('check-all-shopping');
 
   const formNeed = document.getElementById('form-need');
+  const formEditNeed = document.getElementById('form-edit-need');
   const formAlt = document.getElementById('form-alternative');
   const formDec = document.getElementById('form-decision');
   const formChatSend = document.getElementById('form-chat-send');
@@ -141,6 +143,75 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Visual Editing & Deletion Functions
+  window.openEditNeedModal = function(needId) {
+    if (!currentData || !currentData.needs) return;
+    const need = currentData.needs.find(n => n.id === needId);
+    if (!need) return;
+
+    document.getElementById('edit-need-id').value = need.id;
+    document.getElementById('edit-need-title').value = need.title || '';
+    document.getElementById('edit-need-category').value = need.category || 'Equipamentos Científicos';
+    document.getElementById('edit-need-quantity').value = need.quantity || 1;
+    document.getElementById('edit-need-priority').value = need.priority || 'Essencial';
+    document.getElementById('edit-need-budget').value = need.estimated_budget || 0.0;
+    document.getElementById('edit-need-responsible').value = need.responsible || 'Equipe de Pesquisa';
+
+    if (modalEditNeed) modalEditNeed.showModal();
+  };
+
+  window.deleteNeed = async function(needId) {
+    if (!confirm(`Tem certeza que deseja EXCLUIR a necessidade ${needId} do banco de dados?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/needs/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ need_id: needId })
+      });
+      if (res.ok) {
+        await loadDashboardData();
+      } else {
+        alert('Erro ao excluir registro.');
+      }
+    } catch (err) {
+      console.error('Falha na exclusão:', err);
+    }
+  };
+
+  if (formEditNeed) {
+    formEditNeed.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formEditNeed);
+      const payload = {
+        need_id: formData.get('need_id'),
+        title: formData.get('title'),
+        category: formData.get('category'),
+        quantity: parseInt(formData.get('quantity'), 10),
+        priority: formData.get('priority'),
+        estimated_budget: parseFloat(formData.get('estimated_budget') || 0),
+        responsible: formData.get('responsible')
+      };
+
+      try {
+        const res = await fetch('/api/needs/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modalEditNeed.close();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao atualizar registro.');
+        }
+      } catch (err) {
+        console.error('Falha no envio da edição:', err);
+      }
+    });
+  }
+
   // Chat Conversacional & Extração de Intenção com Confirmação Humana e RAG Multi-Turno
   if (formChatSend) {
     formChatSend.addEventListener('submit', async (e) => {
@@ -251,6 +322,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const estBudget = params.estimated_budget ? ` | <strong>Novo Orçamento Est.:</strong> R$ ${params.estimated_budget.toFixed(2)}` : '';
       detailsHtml = `<strong>ID:</strong> ${params.need_id || 'NED-001'}<br>
                      <strong>Título:</strong> ${params.title || 'Inalterado'}${estBudget}`;
+    } else if (action === 'delete_need') {
+      actionLabel = `🗑️ Excluir Necessidade [${params.need_id || 'NED-001'}]`;
+      detailsHtml = `<strong>ID para Exclusão:</strong> ${params.need_id || 'NED-001'}<br>
+                     <span style="color:var(--red); font-weight:bold;">Atenção: Esta ação removerá permanentemente a necessidade e suas cotações do banco de dados.</span>`;
     } else if (action === 'add_quote') {
       actionLabel = 'Adicionar Cotação / Alternativa';
       detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>
@@ -302,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let bodyPayload = params;
 
       if (action === 'update_need') targetUrl = '/api/needs/update';
+      if (action === 'delete_need') targetUrl = '/api/needs/delete';
       if (action === 'add_quote') targetUrl = '/api/alternatives';
       if (action === 'make_decision') targetUrl = '/api/decisions';
       if (action === 'update_status') targetUrl = '/api/needs/status';
@@ -321,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
           okDiv.style.padding = '10px';
           okDiv.style.borderRadius = '8px';
           okDiv.style.fontSize = '0.82rem';
-          okDiv.innerHTML = `<strong>✅ Sucesso!</strong> Registro gravado no banco de dados com sucesso.`;
+          okDiv.innerHTML = `<strong>✅ Sucesso!</strong> Operação realizada no banco de dados com sucesso.`;
           chatMessages.appendChild(okDiv);
           chatMessages.scrollTop = chatMessages.scrollHeight;
           chatHistoryList = []; // Resetar histórico após conclusão com sucesso
@@ -548,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getFallbackData() {
     return {
-      version: '0.3.0',
+      version: '0.4.0',
       projects: [{
         id: 'PROJ-PESQUISA-01',
         name: 'Projeto de Pesquisa e Desenvolvimento Tecnológico',
@@ -618,8 +694,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>${need.title}</h4>
             <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}${estBudgetCard}</p>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:6px;">
             <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
+            <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
+            <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
             <span class="status-pill ${need.status === 'Decidida' || need.status === 'Adquirida' || need.status === 'Entregue' ? 'healthy' : 'degraded'}">${need.status}</span>
           </div>
         </div>
@@ -644,6 +722,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${need.quantity}</td>
         <td><span class="status-pill degraded">${need.priority}</span></td>
         <td><span class="status-pill healthy">${need.status}</span></td>
+        <td>
+          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
+          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
+        </td>
       `;
       tableBody.appendChild(row);
     });
@@ -712,8 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><strong>${subtotalDisplay}</strong></td>
         <td><span class="status-pill ${need.status === 'Entregue' ? 'healthy' : (need.status === 'Adquirida' ? 'healthy' : 'degraded')}">${need.status}</span></td>
         <td>
-          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="updateNeedStatus('${need.id}', 'Adquirida')">Marcar Adquirida</button>
-          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; margin-top:4px;" onclick="updateNeedStatus('${need.id}', 'Entregue')">Marcar Entregue</button>
+          <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
+          <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
+          <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem; margin-top:2px;" onclick="updateNeedStatus('${need.id}', 'Adquirida')">Marcar Adquirida</button>
         </td>
       `;
       shoppingTableBody.appendChild(row);

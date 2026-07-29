@@ -1,407 +1,503 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SisTer-Compras · Gestão de Necessidades e Recursos</title>
-    <link rel="stylesheet" href="./styles.css">
-  </head>
-  <body>
-    <div class="system-layout">
-      <header class="topbar">
-        <div class="mini-brand">
-          <svg class="brand-symbol" viewBox="0 0 64 64" aria-hidden="true">
-            <g fill="none" stroke="currentColor" stroke-width="2.8"><path d="M32 5 55 18v28L32 59 9 46V18z"/><path d="M32 5v54M9 18l46 28M55 18 9 46"/></g>
-            <g fill="currentColor"><circle cx="32" cy="5" r="4"/><circle cx="55" cy="18" r="4"/><circle cx="55" cy="46" r="4"/><circle cx="32" cy="59" r="4"/><circle cx="9" cy="46" r="4"/><circle cx="9" cy="18" r="4"/><circle cx="32" cy="32" r="5"/></g>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SisTer-Compras · Gestão de Necessidades e Recursos</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+  <div class="system-layout">
+    <header class="topbar">
+      <div class="mini-brand">
+        <svg class="brand-symbol" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="2.8">
+            <path d="M32 5 55 18v28L32 59 9 46V18z" />
+            <path d="M32 5v54M9 18l46 28M55 18 9 46" />
+          </g>
+          <g fill="currentColor">
+            <circle cx="32" cy="5" r="4" />
+            <circle cx="55" cy="18" r="4" />
+            <circle cx="55" cy="46" r="4" />
+            <circle cx="32" cy="59" r="4" />
+            <circle cx="9" cy="46" r="4" />
+            <circle cx="9" cy="18" r="4" />
+            <circle cx="32" cy="32" r="5" />
+          </g>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-super">SisTer</span>
+          <h1>Compras</h1>
+        </div>
+      </div>
+
+      <div class="top-center-label">
+        <span>Gestão de Recursos, Cotações e Decisões de Pesquisa</span>
+      </div>
+
+      <div class="top-context">
+        <button type="button" class="ai-button" id="btn-open-chat-modal"
+          title="Abrir Chat Conversacional com o Banco de Dados">💬 Conversar com IA</button>
+        <label class="ollama-selector-label" title="Modelo LLM local via Ollama">
+          <span>Ollama:</span>
+          <select id="select-ollama-model" class="ollama-select">
+            <option value="qwen2.5:14b">qwen2.5:14b (Padrão)</option>
+          </select>
+        </label>
+        <span class="context-pill">Integração por Contrato</span>
+        <span class="user-avatar">SC</span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <nav aria-label="Navegação do SisTer-Compras">
+        <button class="nav-link selected" type="button" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8Z" />
           </svg>
-          <div class="brand-text">
-            <span class="brand-super">SUBSISTEMA AUTÔNOMO</span>
-            <h1>SisTer-Compras</h1>
+          Visão Geral
+        </button>
+        <button class="nav-link" type="button" data-tab="needs">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 3h9l3 3v15H6V3ZM14 3v4h4M9 11h6M9 15h6" />
+          </svg>
+          Necessidades
+        </button>
+        <button class="nav-link" type="button" data-tab="decisions">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3ZM9 12l2 2 4-5" />
+          </svg>
+          Decisões
+        </button>
+        <button class="nav-link" type="button" data-tab="shopping-list">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+          </svg>
+          Lista de Compras
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <span>Contrato Ativo</span>
+        <strong>sister-compras/0.3.0</strong>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <section class="tab-content view active" id="tab-dashboard">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Painel do Pesquisador</span>
+            <h2>Gestão de Recursos de Pesquisa</h2>
+            <p id="project-header-info">Carregando informações do projeto...</p>
+          </div>
+          <div class="action-button-group">
+            <button class="primary-action" type="button" id="btn-open-need-modal">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              + Nova Necessidade
+            </button>
+            <button class="secondary-action" type="button" id="btn-open-alt-modal">
+              + Adicionar Cotação
+            </button>
+            <button class="secondary-action" type="button" id="btn-open-dec-modal">
+              Registrar Parecer
+            </button>
           </div>
         </div>
 
-        <div class="top-center-label">
-          <span>Gestão de Recursos, Cotações e Decisões de Pesquisa</span>
+        <div class="dashboard">
+          <article class="metric">
+            <strong id="metric-needs-count">0</strong>
+            <span>Necessidades Registradas</span>
+          </article>
+          <article class="metric">
+            <strong id="metric-decisions-count">0</strong>
+            <span>Decisões Aprovadas</span>
+          </article>
+          <article class="metric">
+            <strong id="metric-pending-count">0</strong>
+            <span>Pendentes de Parecer</span>
+          </article>
+          <article class="metric">
+            <strong id="metric-compliance">100%</strong>
+            <span>Proveniência Verificada</span>
+          </article>
         </div>
 
-        <div class="top-context">
-          <button type="button" class="ai-button" id="btn-open-chat-modal" title="Abrir Chat Conversacional com o Banco de Dados">💬 Conversar com IA</button>
-          <label class="ollama-selector-label" title="Modelo LLM local via Ollama">
-            <span>Ollama:</span>
-            <select id="select-ollama-model" class="ollama-select">
-              <option value="qwen2.5:14b">qwen2.5:14b (Padrão)</option>
-            </select>
-          </label>
-          <span class="context-pill">Integração por Contrato</span>
-          <span class="user-avatar">SC</span>
-        </div>
-      </header>
-
-      <aside class="sidebar">
-        <nav aria-label="Navegação do SisTer-Compras">
-          <button class="nav-link selected" type="button" data-tab="dashboard">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8Z"/></svg>
-            Visão Geral
-          </button>
-          <button class="nav-link" type="button" data-tab="needs">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6V3ZM14 3v4h4M9 11h6M9 15h6"/></svg>
-            Necessidades
-          </button>
-          <button class="nav-link" type="button" data-tab="decisions">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3ZM9 12l2 2 4-5"/></svg>
-            Decisões
-          </button>
-          <button class="nav-link" type="button" data-tab="shopping-list">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            Lista de Compras
-          </button>
-        </nav>
-        <div class="sidebar-footer">
-          <span>Contrato Ativo</span>
-          <strong>sister-compras/0.3.0</strong>
-        </div>
-      </aside>
-
-      <main class="workspace">
-        <section class="tab-content view active" id="tab-dashboard">
-          <div class="page-heading">
+        <section class="panel">
+          <div class="panel-header">
             <div>
-              <span class="eyebrow">Painel do Pesquisador</span>
-              <h2>Gestão de Recursos de Pesquisa</h2>
-              <p id="project-header-info">Carregando informações do projeto...</p>
+              <span class="section-kicker">Módulo de Aquisição</span>
+              <h3>Necessidades e Cotações do Projeto</h3>
             </div>
-            <div class="action-button-group">
-              <button class="primary-action" type="button" id="btn-open-need-modal">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                + Nova Necessidade
-              </button>
-              <button class="secondary-action" type="button" id="btn-open-alt-modal">
-                + Adicionar Cotação
-              </button>
-              <button class="secondary-action" type="button" id="btn-open-dec-modal">
-                Registrar Parecer
-              </button>
+            <div class="search-field">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-4-4" />
+              </svg>
+              <input id="needs-filter" type="search" placeholder="Buscar necessidade ou item...">
             </div>
           </div>
-
-          <div class="dashboard">
-            <article class="metric">
-              <strong id="metric-needs-count">0</strong>
-              <span>Necessidades Registradas</span>
-            </article>
-            <article class="metric">
-              <strong id="metric-decisions-count">0</strong>
-              <span>Decisões Aprovadas</span>
-            </article>
-            <article class="metric">
-              <strong id="metric-pending-count">0</strong>
-              <span>Pendentes de Parecer</span>
-            </article>
-            <article class="metric">
-              <strong id="metric-compliance">100%</strong>
-              <span>Proveniência Verificada</span>
-            </article>
-          </div>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <span class="section-kicker">Módulo de Aquisição</span>
-                <h3>Necessidades e Cotações do Projeto</h3>
-              </div>
-              <div class="search-field">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                <input id="needs-filter" type="search" placeholder="Buscar necessidade ou item...">
-              </div>
-            </div>
-            <div id="needs-list-container" class="system-grid"></div>
-          </section>
+          <div id="needs-list-container" class="system-grid"></div>
         </section>
+      </section>
 
-        <section class="tab-content view" id="tab-needs">
-          <div class="page-heading">
+      <section class="tab-content view" id="tab-needs">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Evolução do Projeto</span>
+            <h2>Lista Completa de Necessidades</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Necessidade</th>
+                <th>Categoria</th>
+                <th>Qtd</th>
+                <th>Prioridade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="needs-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-content view" id="tab-decisions">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Auditabilidade & Responsabilidade</span>
+            <h2>Decisões Técnicas Registradas</h2>
+          </div>
+        </div>
+        <div id="decisions-timeline" class="timeline"></div>
+      </section>
+
+      <!-- Nova Aba: Lista de Compras -->
+      <section class="tab-content view" id="tab-shopping-list">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Consolidação Orçamentária</span>
+            <h2>Lista Oficial de Compras do Projeto</h2>
+            <p>Relatório de aquisição e gestão de entrega dos recursos aprovados.</p>
+          </div>
+          <div class="action-button-group">
+            <button type="button" class="primary-action" id="btn-print-selected-shopping">
+              🖨️ Imprimir Selecionados (<span id="selected-shopping-count">0</span>)
+            </button>
+            <a href="/api/reports/shopping-list" target="_blank" class="secondary-action" style="text-decoration:none;">
+              Imprimir Todos
+            </a>
+            <a href="/api/data" target="_blank" class="secondary-action" style="text-decoration:none;">
+              Exportar JSON
+            </a>
+          </div>
+        </div>
+
+        <div class="dashboard">
+          <article class="metric" style="border-left: 4px solid var(--teal);">
+            <strong id="shopping-total-budget" style="color:var(--teal);">R$ 0,00</strong>
+            <span>Orçamento Total Aprovado</span>
+          </article>
+          <article class="metric">
+            <strong id="shopping-items-count">0</strong>
+            <span>Itens com Decisão Final</span>
+          </article>
+          <article class="metric">
+            <strong id="shopping-purchased-count">0</strong>
+            <span>Itens Adquiridos/Comprados</span>
+          </article>
+          <article class="metric">
+            <strong id="shopping-delivered-count">0</strong>
+            <span>Itens Entregues/Recebidos</span>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
             <div>
-              <span class="eyebrow">Evolução do Projeto</span>
-              <h2>Lista Completa de Necessidades</h2>
+              <span class="section-kicker">Gestão de Compras e Fornecedores</span>
+              <h3>Itens Aprovados para Aquisição</h3>
             </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
+                  <th style="width:36px; text-align:center;"><input type="checkbox" id="check-all-shopping"
+                      title="Selecionar Todos"></th>
                   <th>Código</th>
-                  <th>Necessidade</th>
+                  <th>Necessidade / Item Aprovado</th>
                   <th>Categoria</th>
+                  <th>Fornecedor</th>
                   <th>Qtd</th>
-                  <th>Prioridade</th>
-                  <th>Status</th>
+                  <th>Subtotal (R$)</th>
+                  <th>Status Compras</th>
+                  <th>Ação</th>
                 </tr>
               </thead>
-              <tbody id="needs-table-body"></tbody>
+              <tbody id="shopping-table-body"></tbody>
             </table>
           </div>
         </section>
+      </section>
+    </main>
 
-        <section class="tab-content view" id="tab-decisions">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">Auditabilidade & Responsabilidade</span>
-              <h2>Decisões Técnicas Registradas</h2>
-            </div>
-          </div>
-          <div id="decisions-timeline" class="timeline"></div>
-        </section>
+    <footer class="footer">
+      <span>SisTer-Compras · subsistema autônomo de gestão de recursos para pesquisa</span>
+      <span>Autonomia operacional e integração por contrato.</span>
+    </footer>
+  </div>
 
-        <!-- Nova Aba: Lista de Compras -->
-        <section class="tab-content view" id="tab-shopping-list">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">Consolidação Orçamentária</span>
-              <h2>Lista Oficial de Compras do Projeto</h2>
-              <p>Relatório de aquisição e gestão de entrega dos recursos aprovados.</p>
-            </div>
-            <div class="action-button-group">
-              <button type="button" class="primary-action" id="btn-print-selected-shopping">
-                🖨️ Imprimir Selecionados (<span id="selected-shopping-count">0</span>)
-              </button>
-              <a href="/api/reports/shopping-list" target="_blank" class="secondary-action" style="text-decoration:none;">
-                Imprimir Todos
-              </a>
-              <a href="/api/data" target="_blank" class="secondary-action" style="text-decoration:none;">
-                Exportar JSON
-              </a>
-            </div>
-          </div>
+  <!-- Modais / Diálogos de Formulário -->
+  <dialog id="modal-edit-need" class="system-dialog">
+    <form id="form-edit-need" method="dialog">
+      <div class="dialog-head">
+        <h3>✏️ Editar Necessidade de Pesquisa</h3>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <input type="hidden" name="need_id" id="edit-need-id">
+        <label>
+          Título da Necessidade / Recurso
+          <input type="text" name="title" id="edit-need-title" required>
+        </label>
+        <div class="form-row">
+          <label>
+            Categoria
+            <select name="category" id="edit-need-category">
+              <option value="Energia & Infraestrutura">Energia & Infraestrutura</option>
+              <option value="Equipamentos Científicos">Equipamentos Científicos</option>
+              <option value="Componentes Eletrônicos">Componentes Eletrônicos</option>
+              <option value="Consumo & Reativos">Consumo & Reativos</option>
+              <option value="Serviços & Licenças">Serviços & Licenças</option>
+            </select>
+          </label>
+          <label>
+            Quantidade
+            <input type="number" name="quantity" id="edit-need-quantity" min="1" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Prioridade
+            <select name="priority" id="edit-need-priority">
+              <option value="Essencial">Essencial</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+          </label>
+          <label>
+            Orçamento Estimado (R$ / unidade)
+            <input type="number" step="0.01" name="estimated_budget" id="edit-need-budget" placeholder="0.00">
+          </label>
+        </div>
+        <label>
+          Equipe / Pesquisador Responsável
+          <input type="text" name="responsible" id="edit-need-responsible" required>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary-action close-modal">Cancelar</button>
+        <button type="submit" class="primary-action">💾 Salvar Alterações</button>
+      </div>
+    </form>
+  </dialog>
 
-          <div class="dashboard">
-            <article class="metric" style="border-left: 4px solid var(--teal);">
-              <strong id="shopping-total-budget" style="color:var(--teal);">R$ 0,00</strong>
-              <span>Orçamento Total Aprovado</span>
-            </article>
-            <article class="metric">
-              <strong id="shopping-items-count">0</strong>
-              <span>Itens com Decisão Final</span>
-            </article>
-            <article class="metric">
-              <strong id="shopping-purchased-count">0</strong>
-              <span>Itens Adquiridos/Comprados</span>
-            </article>
-            <article class="metric">
-              <strong id="shopping-delivered-count">0</strong>
-              <span>Itens Entregues/Recebidos</span>
-            </article>
-          </div>
+  <dialog id="modal-need" class="system-dialog">
+    <form id="form-need" method="dialog">
+      <div class="dialog-head">
+        <h3>Nova Necessidade de Pesquisa</h3>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <label>
+          Título da Necessidade / Recurso
+          <input type="text" name="title" id="need-title-input" required
+            placeholder="Ex: Sensor de umidade de solo IP67">
+        </label>
+        <div style="text-align:right; margin-top:-6px;">
+          <button type="button" class="ai-button" id="btn-ai-specify-reqs">⚡ Sugerir Requisitos com IA
+            (qwen2.5:14b)</button>
+        </div>
+        <div class="form-row">
+          <label>
+            Categoria
+            <select name="category">
+              <option value="Energia & Infraestrutura">Energia & Infraestrutura</option>
+              <option value="Equipamentos Científicos">Equipamentos Científicos</option>
+              <option value="Componentes Eletrônicos">Componentes Eletrônicos</option>
+              <option value="Consumo & Reativos">Consumo & Reativos</option>
+              <option value="Serviços & Licenças">Serviços & Licenças</option>
+            </select>
+          </label>
+          <label>
+            Quantidade
+            <input type="number" name="quantity" value="1" min="1" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Prioridade
+            <select name="priority">
+              <option value="Essencial">Essencial</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+          </label>
+          <label>
+            Responsável
+            <input type="text" name="responsible" required value="Equipe de Pesquisa">
+          </label>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Cancelar</button>
+        <button type="submit" class="primary-action">Cadastrar Necessidade</button>
+      </div>
+    </form>
+  </dialog>
 
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <span class="section-kicker">Gestão de Compras e Fornecedores</span>
-                <h3>Itens Aprovados para Aquisição</h3>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:36px; text-align:center;"><input type="checkbox" id="check-all-shopping" title="Selecionar Todos"></th>
-                    <th>Código</th>
-                    <th>Necessidade / Item Aprovado</th>
-                    <th>Categoria</th>
-                    <th>Fornecedor</th>
-                    <th>Qtd</th>
-                    <th>Subtotal (R$)</th>
-                    <th>Status Compras</th>
-                    <th>Ação</th>
-                  </tr>
-                </thead>
-                <tbody id="shopping-table-body"></tbody>
-              </table>
-            </div>
-          </section>
-        </section>
-      </main>
+  <dialog id="modal-alternative" class="system-dialog">
+    <form id="form-alternative" method="dialog">
+      <div class="dialog-head">
+        <h3>Adicionar Cotação / Alternativa</h3>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <label>
+          Selecionar Necessidade
+          <select name="need_id" id="select-need-for-alt" required></select>
+        </label>
+        <label>
+          Nome do Produto / Serviço / Alternativa
+          <input type="text" name="title" required placeholder="Ex: Sensor LoRaWAN RS485 Industrial">
+        </label>
+        <div class="form-row">
+          <label>
+            Fornecedor / Fonte
+            <input type="text" name="supplier" required placeholder="Ex: AgTech Suprimentos">
+          </label>
+          <label>
+            Preço Observado (R$)
+            <input type="number" step="0.01" name="price" required placeholder="1250.00">
+          </label>
+        </div>
+        <label>
+          Descrição Técnica / Especificação
+          <textarea name="description" rows="2"
+            placeholder="Especificações técnicas relevantes do fornecedor..."></textarea>
+        </label>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Cancelar</button>
+        <button type="submit" class="primary-action">Salvar Cotação</button>
+      </div>
+    </form>
+  </dialog>
 
-      <footer class="footer">
-        <span>SisTer-Compras · subsistema autônomo de gestão de recursos para pesquisa</span>
-        <span>Autonomia operacional e integração por contrato.</span>
-      </footer>
+  <dialog id="modal-decision" class="system-dialog">
+    <form id="form-decision" method="dialog">
+      <div class="dialog-head">
+        <h3>Registrar Parecer Técnico de Decisão</h3>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <label>
+          Selecionar Necessidade
+          <select name="need_id" id="select-need-for-dec" required></select>
+        </label>
+        <label>
+          Alternativa Selecionada
+          <input type="text" name="selected_alternative_id" required value="ALT-01" placeholder="Código da Alternativa">
+        </label>
+        <label>
+          Justificativa Técnica do Pesquisador
+          <textarea name="technical_justification" id="text-justification" rows="3" required
+            placeholder="Explique por que esta alternativa atende aos requisitos do projeto..."></textarea>
+        </label>
+        <label>
+          Pesquisador Responsável pela Decisão
+          <input type="text" name="decided_by" required value="Pesquisador Responsável">
+        </label>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Cancelar</button>
+        <button type="submit" class="primary-action">Aprovar e Formalizar Decisão</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal de Análise do Assistente IA (Ollama) -->
+  <dialog id="modal-ai-analysis" class="system-dialog" style="width: min(720px, 94vw);">
+    <div class="dialog-head">
+      <div>
+        <span class="eyebrow" style="color:var(--teal);">ASSISTENTE IA LOCAL (OLLAMA)</span>
+        <h3 id="ai-modal-title">Análise Técnica com qwen2.5:14b</h3>
+      </div>
+      <button type="button" class="dialog-close close-modal">&times;</button>
     </div>
+    <div class="form-body">
+      <div id="ai-loading" style="display:none; text-align:center; padding:20px; color:var(--blue);">
+        <strong>Consultando modelo local via Ollama... Aguarde.</strong>
+      </div>
+      <div id="ai-content-box"
+        style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:16px; font-size:0.85rem; max-height:360px; overflow-y:auto; white-space:pre-wrap;">
+      </div>
+      <small style="color:var(--muted); font-style:italic;">Nota: O parecer de IA é uma recomendação consultiva. A
+        aprovação formal é exclusiva do pesquisador.</small>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="secondary-action close-modal">Fechar</button>
+      <button type="button" class="primary-action" id="btn-copy-ai-suggestion">Copiar para Parecer Humano</button>
+    </div>
+  </dialog>
 
-    <!-- Modais / Diálogos de Formulário -->
-    <dialog id="modal-need" class="system-dialog">
-      <form id="form-need" method="dialog">
-        <div class="dialog-head">
-          <h3>Nova Necessidade de Pesquisa</h3>
-          <button type="button" class="dialog-close close-modal">&times;</button>
+  <!-- Modal de Chat Conversacional do Assistente IA -->
+  <dialog id="modal-ai-chat" class="system-dialog" style="width: min(680px, 94vw);">
+    <div class="dialog-head">
+      <div>
+        <span class="eyebrow" style="color:var(--teal);">GESTÃO CONVERSACIONAL VIA IA (OLLAMA)</span>
+        <h3>Assistente Inteligente SisTer-Compras</h3>
+      </div>
+      <button type="button" class="dialog-close close-modal">&times;</button>
+    </div>
+    <div class="form-body">
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:8px;">
+        Digite sua instrução em linguagem natural (ex: <em>"Cadastrar necessidade de 4 placas de energia solar
+          450W"</em> ou <em>"Registrar cotação de R$ 1.500 do fornecedor SolTech para NED-002"</em>). A IA interpretará
+        seus dados e solicitará sua confirmação antes de gravar no banco de dados.
+      </p>
+      <div id="chat-messages"
+        style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:14px; height:240px; overflow-y:auto; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#ffffff; border:1px solid var(--line); padding:10px; border-radius:8px;">
+          <strong>Assistente IA:</strong> Olá! O que deseja cadastrar ou alterar no banco de dados hoje?
         </div>
-        <div class="form-body">
-          <label>
-            Título da Necessidade / Recurso
-            <input type="text" name="title" id="need-title-input" required placeholder="Ex: Sensor de umidade de solo IP67">
-          </label>
-          <div style="text-align:right; margin-top:-6px;">
-            <button type="button" class="ai-button" id="btn-ai-specify-reqs">⚡ Sugerir Requisitos com IA (qwen2.5:14b)</button>
-          </div>
-          <div class="form-row">
-            <label>
-              Categoria
-              <select name="category">
-                <option value="Energia & Infraestrutura">Energia & Infraestrutura</option>
-                <option value="Equipamentos Científicos">Equipamentos Científicos</option>
-                <option value="Componentes Eletrônicos">Componentes Eletrônicos</option>
-                <option value="Consumo & Reativos">Consumo & Reativos</option>
-                <option value="Serviços & Licenças">Serviços & Licenças</option>
-              </select>
-            </label>
-            <label>
-              Quantidade
-              <input type="number" name="quantity" value="1" min="1" required>
-            </label>
-          </div>
-          <div class="form-row">
-            <label>
-              Prioridade
-              <select name="priority">
-                <option value="Essencial">Essencial</option>
-                <option value="Alta">Alta</option>
-                <option value="Média">Média</option>
-                <option value="Baixa">Baixa</option>
-              </select>
-            </label>
-            <label>
-              Responsável
-              <input type="text" name="responsible" required value="Equipe de Pesquisa">
-            </label>
-          </div>
-        </div>
-        <div class="dialog-foot">
-          <button type="button" class="secondary-action close-modal">Cancelar</button>
-          <button type="submit" class="primary-action">Cadastrar Necessidade</button>
-        </div>
+      </div>
+
+      <div id="proposal-card-container"></div>
+
+      <form id="form-chat-send" style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" id="chat-input" placeholder="Digite sua intenção em linguagem natural..." style="flex:1;"
+          required>
+        <button type="submit" class="primary-action">Enviar</button>
       </form>
-    </dialog>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="secondary-action close-modal">Fechar Chat</button>
+    </div>
+  </dialog>
 
-    <dialog id="modal-alternative" class="system-dialog">
-      <form id="form-alternative" method="dialog">
-        <div class="dialog-head">
-          <h3>Adicionar Cotação / Alternativa</h3>
-          <button type="button" class="dialog-close close-modal">&times;</button>
-        </div>
-        <div class="form-body">
-          <label>
-            Selecionar Necessidade
-            <select name="need_id" id="select-need-for-alt" required></select>
-          </label>
-          <label>
-            Nome do Produto / Serviço / Alternativa
-            <input type="text" name="title" required placeholder="Ex: Sensor LoRaWAN RS485 Industrial">
-          </label>
-          <div class="form-row">
-            <label>
-              Fornecedor / Fonte
-              <input type="text" name="supplier" required placeholder="Ex: AgTech Suprimentos">
-            </label>
-            <label>
-              Preço Observado (R$)
-              <input type="number" step="0.01" name="price" required placeholder="1250.00">
-            </label>
-          </div>
-          <label>
-            Descrição Técnica / Especificação
-            <textarea name="description" rows="2" placeholder="Especificações técnicas relevantes do fornecedor..."></textarea>
-          </label>
-        </div>
-        <div class="dialog-foot">
-          <button type="button" class="secondary-action close-modal">Cancelar</button>
-          <button type="submit" class="primary-action">Salvar Cotação</button>
-        </div>
-      </form>
-    </dialog>
+  <script src="./app.js"></script>
+</body>
 
-    <dialog id="modal-decision" class="system-dialog">
-      <form id="form-decision" method="dialog">
-        <div class="dialog-head">
-          <h3>Registrar Parecer Técnico de Decisão</h3>
-          <button type="button" class="dialog-close close-modal">&times;</button>
-        </div>
-        <div class="form-body">
-          <label>
-            Selecionar Necessidade
-            <select name="need_id" id="select-need-for-dec" required></select>
-          </label>
-          <label>
-            Alternativa Selecionada
-            <input type="text" name="selected_alternative_id" required value="ALT-01" placeholder="Código da Alternativa">
-          </label>
-          <label>
-            Justificativa Técnica do Pesquisador
-            <textarea name="technical_justification" id="text-justification" rows="3" required placeholder="Explique por que esta alternativa atende aos requisitos do projeto..."></textarea>
-          </label>
-          <label>
-            Pesquisador Responsável pela Decisão
-            <input type="text" name="decided_by" required value="Pesquisador Responsável">
-          </label>
-        </div>
-        <div class="dialog-foot">
-          <button type="button" class="secondary-action close-modal">Cancelar</button>
-          <button type="submit" class="primary-action">Aprovar e Formalizar Decisão</button>
-        </div>
-      </form>
-    </dialog>
-
-    <!-- Modal de Análise do Assistente IA (Ollama) -->
-    <dialog id="modal-ai-analysis" class="system-dialog" style="width: min(720px, 94vw);">
-      <div class="dialog-head">
-        <div>
-          <span class="eyebrow" style="color:var(--teal);">ASSISTENTE IA LOCAL (OLLAMA)</span>
-          <h3 id="ai-modal-title">Análise Técnica com qwen2.5:14b</h3>
-        </div>
-        <button type="button" class="dialog-close close-modal">&times;</button>
-      </div>
-      <div class="form-body">
-        <div id="ai-loading" style="display:none; text-align:center; padding:20px; color:var(--blue);">
-          <strong>Consultando modelo local via Ollama... Aguarde.</strong>
-        </div>
-        <div id="ai-content-box" style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:16px; font-size:0.85rem; max-height:360px; overflow-y:auto; white-space:pre-wrap;"></div>
-        <small style="color:var(--muted); font-style:italic;">Nota: O parecer de IA é uma recomendação consultiva. A aprovação formal é exclusiva do pesquisador.</small>
-      </div>
-      <div class="dialog-foot">
-        <button type="button" class="secondary-action close-modal">Fechar</button>
-        <button type="button" class="primary-action" id="btn-copy-ai-suggestion">Copiar para Parecer Humano</button>
-      </div>
-    </dialog>
-
-    <!-- Modal de Chat Conversacional do Assistente IA -->
-    <dialog id="modal-ai-chat" class="system-dialog" style="width: min(680px, 94vw);">
-      <div class="dialog-head">
-        <div>
-          <span class="eyebrow" style="color:var(--teal);">GESTÃO CONVERSACIONAL VIA IA (OLLAMA)</span>
-          <h3>Assistente Inteligente SisTer-Compras</h3>
-        </div>
-        <button type="button" class="dialog-close close-modal">&times;</button>
-      </div>
-      <div class="form-body">
-        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:8px;">
-          Digite sua instrução em linguagem natural (ex: <em>"Cadastrar necessidade de 4 placas de energia solar 450W"</em> ou <em>"Registrar cotação de R$ 1.500 do fornecedor SolTech para NED-002"</em>). A IA interpretará seus dados e solicitará sua confirmação antes de gravar no banco de dados.
-        </p>
-        <div id="chat-messages" style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:14px; height:240px; overflow-y:auto; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
-          <div style="background:#ffffff; border:1px solid var(--line); padding:10px; border-radius:8px;">
-            <strong>Assistente IA:</strong> Olá! O que deseja cadastrar ou alterar no banco de dados hoje?
-          </div>
-        </div>
-        
-        <div id="proposal-card-container"></div>
-
-        <form id="form-chat-send" style="display:flex; gap:8px; margin-top:8px;">
-          <input type="text" id="chat-input" placeholder="Digite sua intenção em linguagem natural..." style="flex:1;" required>
-          <button type="submit" class="primary-action">Enviar</button>
-        </form>
-      </div>
-      <div class="dialog-foot">
-        <button type="button" class="secondary-action close-modal">Fechar Chat</button>
-      </div>
-    </dialog>
-
-    <script src="./app.js"></script>
-  </body>
 </html>

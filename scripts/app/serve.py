@@ -28,16 +28,17 @@ def generate_ollama_intent(model_name, user_message, history, current_context_da
     system_prompt = """Você é o Assistente RAG de Inteligência do SisTer-Compras com ACESSO AO HISTÓRICO COMPLETO DA CONVERSA e ao Banco de Dados.
 Sua missão é extrair E MANTER acumulados todos os dados informados pelo usuário ao longo de TODAS AS MENSAGENS da conversa (Multi-Turn Chat).
 
-REGRAS RAG, CRIAÇÃO E EDIÇÃO DE REGISTROS:
-1. CONSULTE O BANCO DE DADOS (RAG): Se a instrução do usuário se referir a um registro QUE JÁ EXISTE NO BANCO DE DADOS (ex: "NED-002" ou "cooler do RPi 5") e o usuário quiser alterar, incluir orçamento ou atualizar dados, RESPONDA COM "action": "update_need" E INCLUA O "need_id" DO REGISTRO EXISTENTE. NÃO CRIE UM NOVO REGISTRO DUPLICADO SE ELE JÁ EXISTIR NO BANCO!
-2. Se o usuário quiser cadastrar UMA NOVA NECESSIDADE que não existe no banco, responda com "action": "create_need".
-3. Ao cadastrar nova necessidade, peça proativamente o Orçamento Estimado (R$) se não for informado, utilizando "action": "ask_clarification".
-4. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
+REGRAS RAG, EDIÇÃO E EXCLUSÃO DE REGISTROS:
+1. EXCLUSÃO DE REGISTROS: Se o usuário pedir para excluir, remover ou apagar um registro que existe no banco (ex: "Excluir NED-002", "Apagar necessidade do Power Bank"), RESPONDA COM "action": "delete_need" E O "need_id" DO ITEM.
+2. EDIÇÃO DE REGISTROS: Se a instrução se referir a um registro existente (ex: "NED-002" ou "cooler do RPi 5") e o usuário quiser alterar dados ou incluir valor estimado, RESPONDA COM "action": "update_need" E O "need_id".
+3. Se o usuário quiser cadastrar UMA NOVA NECESSIDADE que não existe no banco, responda com "action": "create_need".
+4. Ao cadastrar nova necessidade, peça proativamente o Orçamento Estimado (R$) se não for informado, utilizando "action": "ask_clarification".
+5. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
 
 RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
-  "action": "create_need" | "update_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
-  "explanation": "Descrição clara para o usuário ou pergunta de esclarecimento sobre dados faltantes",
+  "action": "create_need" | "update_need" | "delete_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
+  "explanation": "Descrição clara para o usuário sobre a ação ou esclarecimento",
   "options": ["Opção 1", "Opção 2"],
   "params": {
     "need_id": "NED-002",
@@ -361,9 +362,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 if need['id'] == need_id:
                     if 'title' in payload and payload['title']: need['title'] = payload['title']
                     if 'category' in payload and payload['category']: need['category'] = payload['category']
-                    if 'quantity' in payload and payload['quantity']: need['quantity'] = payload['quantity']
+                    if 'quantity' in payload and payload['quantity']: need['quantity'] = int(payload['quantity'])
                     if 'priority' in payload and payload['priority']: need['priority'] = payload['priority']
-                    if 'estimated_budget' in payload and payload['estimated_budget']: need['estimated_budget'] = float(payload['estimated_budget'])
+                    if 'responsible' in payload and payload['responsible']: need['responsible'] = payload['responsible']
+                    if 'estimated_budget' in payload and payload['estimated_budget'] is not None: need['estimated_budget'] = float(payload['estimated_budget'])
                     found = True
                     break
             if found:
@@ -375,6 +377,30 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "success"}, ensure_ascii=False).encode('utf-8'))
             else:
                 self.send_error(404, "Necessidade nao encontrada para atualizacao")
+            return
+
+        elif self.path == '/api/needs/delete':
+            need_id = payload.get('need_id')
+            initial_count = len(data.get('needs', []))
+            data['needs'] = [n for n in data.get('needs', []) if n.get('id') != need_id]
+            data['decisions'] = [d for d in data.get('decisions', []) if d.get('need_id') != need_id]
+            
+            if db_manager.use_pg:
+                try:
+                    import psycopg
+                    with psycopg.connect(db_manager.conn_str) as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("DELETE FROM needs WHERE id = %s;", (need_id,))
+                            conn.commit()
+                except Exception as e:
+                    print(f"[DatabaseManager] Erro ao deletar no PostgreSQL: {e}")
+
+            db_manager.save_data(data)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "deleted_id": need_id}, ensure_ascii=False).encode('utf-8'))
             return
 
         elif self.path == '/api/needs/status':
