@@ -1773,6 +1773,75 @@ tr:last-child td {
   color: #ffffff;
 }
 
+/* ==========================================================================
+   Cards de Proposta Conversacional da IA
+   ========================================================================== */
+
+.proposal-card {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 2px solid var(--teal);
+  box-shadow: 0 4px 14px rgba(28, 155, 152, 0.15);
+}
+
+.proposal-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.proposal-card-head strong {
+  font-size: 0.88rem;
+  color: var(--navy);
+}
+
+.proposal-card-body {
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--soft);
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.proposal-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-action-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--teal);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-action-btn:hover {
+  background: var(--teal-light);
+}
+
+.cancel-action-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--soft);
+  color: var(--navy);
+  font-size: 0.8rem;
+  font-weight: 750;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+
 .action-button-group {
   display: flex;
   align-items: center;

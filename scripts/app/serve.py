@@ -24,6 +24,63 @@ def fetch_ollama_models():
         print(f"[Ollama] Erro ao consultar modelos locais: {e}")
         return ["qwen2.5:14b", "qwen2.5:7b", "llama3:8b"]
 
+def generate_ollama_intent(model_name, user_message, current_context_data):
+    system_prompt = """Você é o Assistente de Inteligência do SisTer-Compras responsável por gerenciar registros no banco de dados.
+O usuário enviará uma instrução em linguagem natural (ex: cadastrar necessidade, adicionar cotação ou registrar decisão).
+Sua tarefa é extrair a intenção e estruturar um JSON válido EXATAMENTE no seguinte formato sem texto adicional antes ou depois do JSON:
+
+{
+  "action": "create_need" | "add_quote" | "make_decision" | "update_status",
+  "explanation": "Descrição curta em português da ação identificada",
+  "params": {
+    "title": "...",
+    "category": "Energia & Infraestrutura" | "Equipamentos Científicos" | "Componentes Eletrônicos" | "Consumo & Reativos" | "Serviços & Licenças",
+    "quantity": 1,
+    "priority": "Essencial" | "Alta" | "Média" | "Baixa",
+    "responsible": "Equipe de Pesquisa",
+    "need_id": "NED-001",
+    "supplier": "...",
+    "price": 0.0,
+    "selected_alternative_id": "ALT-01",
+    "technical_justification": "..."
+  }
+}
+"""
+
+    prompt = f"Instrução do Usuário: '{user_message}'\nContexto Atual de Dados: {json.dumps(current_context_data, ensure_ascii=False)}"
+    payload = {
+        "model": model_name,
+        "system": system_prompt,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json"
+    }
+
+    try:
+        req_data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(
+            f"{OLLAMA_URL}/api/generate",
+            data=req_data,
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            res_data = json.loads(resp.read().decode('utf-8'))
+            raw_text = res_data.get('response', '{}')
+            return json.loads(raw_text)
+    except Exception as e:
+        print(f"[Ollama Intent Error] {e}")
+        return {
+            "action": "create_need",
+            "explanation": f"Não foi possível processar via {model_name}. Proposta gerada por fallback.",
+            "params": {
+                "title": user_message,
+                "category": "Equipamentos Científicos",
+                "quantity": 1,
+                "priority": "Essencial",
+                "responsible": "Equipe de Pesquisa"
+            }
+        }
+
 def generate_ollama_analysis(model_name, need_item, mode="analyze"):
     if mode == "specify":
         prompt_text = f"""Você é o Assistente de Engenharia e Especificação do SisTer-Compras.
@@ -355,6 +412,18 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "success", "decision": dec_item}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        elif self.path == '/api/ollama/intent':
+            user_message = payload.get('message', '')
+            model_name = payload.get('model', 'qwen2.5:14b')
+            proposal = generate_ollama_intent(model_name, user_message, data)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "proposal": proposal}, ensure_ascii=False).encode('utf-8'))
             return
 
         elif self.path == '/api/ollama/analyze':

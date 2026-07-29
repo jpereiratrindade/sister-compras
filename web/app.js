@@ -9,10 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalAlternative = document.getElementById('modal-alternative');
   const modalDecision = document.getElementById('modal-decision');
   const modalAi = document.getElementById('modal-ai-analysis');
+  const modalChat = document.getElementById('modal-ai-chat');
 
   const btnOpenNeed = document.getElementById('btn-open-need-modal');
   const btnOpenAlt = document.getElementById('btn-open-alt-modal');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
+  const btnOpenChat = document.getElementById('btn-open-chat-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
   const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
   const btnPrintSelected = document.getElementById('btn-print-selected-shopping');
@@ -21,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formNeed = document.getElementById('form-need');
   const formAlt = document.getElementById('form-alternative');
   const formDec = document.getElementById('form-decision');
+  const formChatSend = document.getElementById('form-chat-send');
 
   const selectOllama = document.getElementById('select-ollama-model');
 
@@ -53,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateNeedSelects();
     modalDecision.showModal();
   });
+  if (btnOpenChat) btnOpenChat.addEventListener('click', () => modalChat.showModal());
 
   document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -133,6 +137,150 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const ids = Array.from(checked).map(c => c.dataset.needId).join(',');
       window.open(`/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`, '_blank');
+    });
+  }
+
+  // Chat Conversacional & Extração de Intenção com Confirmação Humana
+  if (formChatSend) {
+    formChatSend.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const chatInput = document.getElementById('chat-input');
+      const chatMessages = document.getElementById('chat-messages');
+      const proposalContainer = document.getElementById('proposal-card-container');
+      const messageText = chatInput.value.trim();
+      if (!messageText) return;
+
+      // Renderizar mensagem do usuário
+      const userDiv = document.createElement('div');
+      userDiv.style.alignSelf = 'flex-end';
+      userDiv.style.background = 'var(--soft)';
+      userDiv.style.border = '1px solid var(--line)';
+      userDiv.style.padding = '8px 12px';
+      userDiv.style.borderRadius = '8px';
+      userDiv.innerHTML = `<strong>Você:</strong> ${messageText}`;
+      chatMessages.appendChild(userDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      chatInput.value = '';
+      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--blue); margin-top:8px;">Interpretando intenção com qwen2.5:14b...</div>';
+
+      try {
+        const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
+        const res = await fetch('/api/ollama/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: messageText, model: model })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const proposal = data.proposal || {};
+          renderActionProposal(proposal);
+        } else {
+          proposalContainer.innerHTML = '<div style="color:var(--red); font-size:0.8rem;">Erro ao interpretar instrução.</div>';
+        }
+      } catch (err) {
+        proposalContainer.innerHTML = `<div style="color:var(--red); font-size:0.8rem;">Erro de comunicação: ${err.message}</div>`;
+      }
+    });
+  }
+
+  function renderActionProposal(proposal) {
+    const proposalContainer = document.getElementById('proposal-card-container');
+    const chatMessages = document.getElementById('chat-messages');
+    proposalContainer.innerHTML = '';
+
+    const action = proposal.action || 'create_need';
+    const params = proposal.params || {};
+    const explanation = proposal.explanation || 'Proposta de Ação';
+
+    let actionLabel = 'Cadastrar Nova Necessidade';
+    let detailsHtml = '';
+
+    if (action === 'create_need') {
+      actionLabel = 'Cadastrar Nova Necessidade';
+      detailsHtml = `<strong>Título:</strong> ${params.title || 'N/A'}<br>
+                     <strong>Categoria:</strong> ${params.category || 'Equipamentos Científicos'} | <strong>Quantidade:</strong> ${params.quantity || 1}<br>
+                     <strong>Prioridade:</strong> ${params.priority || 'Essencial'}`;
+    } else if (action === 'add_quote') {
+      actionLabel = 'Adicionar Cotação / Alternativa';
+      detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>
+                     <strong>Produto/Alternativa:</strong> ${params.title || 'Alternativa'}<br>
+                     <strong>Fornecedor:</strong> ${params.supplier || 'Fornecedor N/A'} | <strong>Valor:</strong> R$ ${params.price || 0}`;
+    } else if (action === 'make_decision') {
+      actionLabel = 'Registrar Parecer de Decisão';
+      detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>
+                     <strong>Alternativa Escolhida:</strong> ${params.selected_alternative_id || 'ALT-01'}<br>
+                     <strong>Justificativa:</strong> "${params.technical_justification || 'Conforme requisitos'}"`;
+    } else if (action === 'update_status') {
+      actionLabel = 'Atualizar Status da Compra';
+      detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>
+                     <strong>Novo Status:</strong> ${params.status || 'Adquirida'}`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'proposal-card';
+    card.innerHTML = `
+      <div class="proposal-card-head">
+        <strong>⚡ PROPOSTA DE AÇÃO DA IA: ${actionLabel}</strong>
+      </div>
+      <p style="font-size:0.78rem; color:var(--muted); margin-bottom:6px;">${explanation}</p>
+      <div class="proposal-card-body">
+        ${detailsHtml}
+      </div>
+      <div class="proposal-card-actions">
+        <button type="button" class="cancel-action-btn" id="btn-cancel-proposal">❌ Cancelar</button>
+        <button type="button" class="confirm-action-btn" id="btn-confirm-proposal">✅ Confirmar e Gravar no Banco</button>
+      </div>
+    `;
+
+    proposalContainer.appendChild(card);
+
+    document.getElementById('btn-cancel-proposal').addEventListener('click', () => {
+      proposalContainer.innerHTML = '';
+      const cancelDiv = document.createElement('div');
+      cancelDiv.style.color = 'var(--muted)';
+      cancelDiv.style.fontSize = '0.8rem';
+      cancelDiv.innerHTML = '<strong>Assistente IA:</strong> Ação cancelada pelo usuário.';
+      chatMessages.appendChild(cancelDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    document.getElementById('btn-confirm-proposal').addEventListener('click', async () => {
+      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--teal); font-weight:bold;">Gravando no Banco de Dados...</div>';
+      
+      let targetUrl = '/api/needs';
+      let bodyPayload = params;
+
+      if (action === 'add_quote') targetUrl = '/api/alternatives';
+      if (action === 'make_decision') targetUrl = '/api/decisions';
+      if (action === 'update_status') targetUrl = '/api/needs/status';
+
+      try {
+        const res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyPayload)
+        });
+
+        if (res.ok) {
+          proposalContainer.innerHTML = '';
+          const okDiv = document.createElement('div');
+          okDiv.style.background = '#eaf7f5';
+          okDiv.style.border = '1px solid var(--teal)';
+          okDiv.style.padding = '10px';
+          okDiv.style.borderRadius = '8px';
+          okDiv.style.fontSize = '0.82rem';
+          okDiv.innerHTML = `<strong>✅ Sucesso!</strong> Registro gravado no banco de dados com sucesso.`;
+          chatMessages.appendChild(okDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          await loadDashboardData();
+        } else {
+          proposalContainer.innerHTML = '<div style="color:var(--red); font-size:0.8rem;">Erro ao gravar no banco.</div>';
+        }
+      } catch (err) {
+        proposalContainer.innerHTML = `<div style="color:var(--red); font-size:0.8rem;">Erro: ${err.message}</div>`;
+      }
     });
   }
 

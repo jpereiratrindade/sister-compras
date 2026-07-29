@@ -25,6 +25,7 @@
         </div>
 
         <div class="top-context">
+          <button type="button" class="ai-button" id="btn-open-chat-modal" title="Abrir Chat Conversacional com o Banco de Dados">💬 Conversar com IA</button>
           <label class="ollama-selector-label" title="Modelo LLM local via Ollama">
             <span>Ollama:</span>
             <select id="select-ollama-model" class="ollama-select">
@@ -367,6 +368,37 @@
       <div class="dialog-foot">
         <button type="button" class="secondary-action close-modal">Fechar</button>
         <button type="button" class="primary-action" id="btn-copy-ai-suggestion">Copiar para Parecer Humano</button>
+      </div>
+    </dialog>
+
+    <!-- Modal de Chat Conversacional do Assistente IA -->
+    <dialog id="modal-ai-chat" class="system-dialog" style="width: min(680px, 94vw);">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow" style="color:var(--teal);">GESTÃO CONVERSACIONAL VIA IA (OLLAMA)</span>
+          <h3>Assistente Inteligente SisTer-Compras</h3>
+        </div>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:8px;">
+          Digite sua instrução em linguagem natural (ex: <em>"Cadastrar necessidade de 4 placas de energia solar 450W"</em> ou <em>"Registrar cotação de R$ 1.500 do fornecedor SolTech para NED-002"</em>). A IA interpretará seus dados e solicitará sua confirmação antes de gravar no banco de dados.
+        </p>
+        <div id="chat-messages" style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:14px; height:240px; overflow-y:auto; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#ffffff; border:1px solid var(--line); padding:10px; border-radius:8px;">
+            <strong>Assistente IA:</strong> Olá! O que deseja cadastrar ou alterar no banco de dados hoje?
+          </div>
+        </div>
+        
+        <div id="proposal-card-container"></div>
+
+        <form id="form-chat-send" style="display:flex; gap:8px; margin-top:8px;">
+          <input type="text" id="chat-input" placeholder="Digite sua intenção em linguagem natural..." style="flex:1;" required>
+          <button type="submit" class="primary-action">Enviar</button>
+        </form>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Fechar Chat</button>
       </div>
     </dialog>
 
