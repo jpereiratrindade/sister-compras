@@ -45,6 +45,7 @@ REQUIRED_FILES = [
     "contracts/nexo_compras_integration.schema.json",
     "contracts/nexo_compras_profile.json",
     "contracts/nexo_compras.openapi.yaml",
+    "contracts/nexo_project_context.schema.json",
     ".env.example",
     "compose.yml",
     "scripts/validate_tool_contracts.py",

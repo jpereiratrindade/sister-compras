@@ -2083,6 +2083,42 @@ tr:last-child td {
   font-size: .67rem;
 }
 
+.nexo-project-context-panel {
+  margin-top: 18px;
+}
+
+.project-context-list {
+  display: grid;
+  gap: 8px;
+}
+
+.project-context-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.project-context-list article div {
+  display: grid;
+  gap: 3px;
+}
+
+.project-context-list article span {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.context-boundary-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: .7rem;
+}
+
 @media (max-width: 980px) {
   .integration-layout {
     grid-template-columns: 1fr;

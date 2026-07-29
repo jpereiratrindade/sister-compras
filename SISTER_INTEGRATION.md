@@ -43,5 +43,13 @@ substitui a API: ela comanda o Aggregate local, e os sistemas sincronizam a
 decisão por endpoints contratuais. Assim, a governança é humana e visível sem
 transformar cliques ou telas em protocolo implícito.
 
+## Metadados de projetos
+
+A capacidade `nexo.project-context.read` transporta o catálogo mínimo
+`nexo-project-context/1.0.0`: identificador, nome e estado do projeto, além de
+referências de atividades científicas e operacionais. O Compras exibe esses
+metadados como referências externas e nunca os trata como registros sob sua
+autoridade.
+
 Consulte
 [`adr/ADR-005-nexo-compras-federated-boundary.md`](adr/ADR-005-nexo-compras-federated-boundary.md).

@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentData = null;
   let currentAgreement = null;
+  let currentNexoContext = null;
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
   let chatHistoryList = [];
@@ -123,16 +124,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('compras-agreement-suspend').hidden = status !== 'active';
     document.getElementById('compras-agreement-revoke').hidden =
       !['accepted', 'active', 'suspended'].includes(status);
+
+    document.getElementById('nexo-project-context-list').innerHTML =
+      (currentNexoContext?.projects || []).map(project => `<article>
+        <div><strong>${escapeHtml(project.project_id)}</strong>
+          <span>${escapeHtml(project.name)}</span></div>
+        <span class="status-pill">${escapeHtml(project.status)}</span>
+      </article>`).join('') ||
+      'Nenhum metadado de projeto recebido.';
+    document.getElementById('nexo-project-context-provenance').textContent =
+      currentNexoContext
+        ? `${currentNexoContext.schema} · acordo r${currentNexoContext.agreement.revision}`
+        : 'Aguardando contexto';
   }
 
   async function loadIntegrationAgreement() {
     try {
-      const response = await fetch(apiUrl('/api/integration-agreements/nexo'), {
-        cache: 'no-store'
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.detail || `Falha HTTP ${response.status}`);
-      currentAgreement = payload.agreement;
+      const [agreementResponse, contextResponse] = await Promise.all([
+        fetch(apiUrl('/api/integration-agreements/nexo'), {cache: 'no-store'}),
+        fetch(apiUrl('/api/nexo/context'), {cache: 'no-store'})
+      ]);
+      const agreementPayload = await agreementResponse.json();
+      if (!agreementResponse.ok) {
+        throw new Error(
+          agreementPayload.detail || `Falha HTTP ${agreementResponse.status}`);
+      }
+      currentAgreement = agreementPayload.agreement;
+      if (contextResponse.ok) currentNexoContext = await contextResponse.json();
       renderIntegrationAgreement();
     } catch (error) {
       const message = document.getElementById('compras-agreement-message');

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sister.local/contracts/nexo_project_context.schema.json",
+  "title": "Nexo Project Context",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "schema",
+    "system_id",
+    "generated_at",
+    "project",
+    "projects",
+    "research_activities",
+    "operational_activities",
+    "agreement"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0.0"},
+    "schema": {"const": "nexo-project-context/1.0.0"},
+    "system_id": {"const": "sister_nexo"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "project": {"$ref": "#/$defs/project"},
+    "projects": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/project"}
+    },
+    "research_activities": {"type": "array"},
+    "operational_activities": {"type": "array"},
+    "agreement": {
+      "type": "object",
+      "required": ["agreement_id", "revision", "digest"],
+      "properties": {
+        "agreement_id": {"type": "string", "format": "uuid"},
+        "revision": {"type": "integer", "minimum": 1},
+        "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    }
+  },
+  "$defs": {
+    "project": {
+      "type": "object",
+      "required": ["project_id", "name", "status"],
+      "properties": {
+        "project_id": {"type": "string"},
+        "name": {"type": "string"},
+        "status": {"type": "string"}
+      }
+    }
+  }
+}

@@ -451,6 +451,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             })
             return
         if path == '/api/nexo/context':
+            agreement = db_manager.get_integration_agreement()
+            if not agreement_allows(agreement, "nexo.project-context.read"):
+                self.send_json(403, {
+                    "status": "error",
+                    "detail": (
+                        "A capacidade nexo.project-context.read não está "
+                        "ativa no acordo Nexo–Compras."
+                    )
+                })
+                return
             request = urllib.request.Request(
                 "http://127.0.0.1:8015/api/v1/integrations/compras/context",
                 headers={
@@ -458,13 +468,31 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     "X-Sister-Name": identity["name"],
                     "X-Sister-Email": identity["email"],
                     "X-Sister-Role": identity["role"],
+                    "X-Sister-System": "sister_compras",
                     "User-Agent": "Nexo-Compras/0.4.0",
                 },
             )
             try:
                 with urllib.request.urlopen(request, timeout=3) as response:
-                    self.send_json(200, json.loads(response.read().decode("utf-8")))
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                    context = json.loads(response.read().decode("utf-8"))
+                if (
+                    context.get("schema") != "nexo-project-context/1.0.0"
+                    or context.get("system_id") != "sister_nexo"
+                    or str(context.get("agreement", {}).get("agreement_id"))
+                    != str(agreement["agreement_id"])
+                    or context.get("agreement", {}).get("revision")
+                    != agreement["revision"]
+                    or context.get("agreement", {}).get("digest")
+                    != agreement["digest"]
+                ):
+                    raise ValueError(
+                        "metadados do projeto não correspondem ao acordo ativo"
+                    )
+                self.send_json(200, context)
+            except (
+                urllib.error.URLError, TimeoutError,
+                json.JSONDecodeError, ValueError
+            ) as error:
                 self.send_json(502, {
                     "status": "error",
                     "detail": f"Contexto de projetos do Nexo indisponível: {error}",
