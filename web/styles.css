@@ -1717,3 +1717,139 @@ tr:last-child td {
     text-align: center;
   }
 }
+
+/* ==========================================================================
+   Modais & Diálogos de Formulário Interativo
+   ========================================================================== */
+
+.action-button-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--navy);
+  font-size: 0.82rem;
+  font-weight: 750;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.secondary-action:hover {
+  background: var(--soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.system-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(580px, 92vw);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(9, 37, 75, 0.25);
+  padding: 28px;
+  z-index: 1000;
+  outline: none;
+}
+
+.system-dialog::backdrop {
+  background: rgba(9, 37, 75, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dialog-head h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.dialog-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 1.2rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dialog-close:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  color: var(--navy);
+}
+
+.form-body input,
+.form-body select,
+.form-body textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-body input:focus,
+.form-body select:focus,
+.form-body textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(26, 125, 196, 0.15);
+  background: #ffffff;
+}
+
+.dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+

@@ -4,6 +4,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const refreshBtn = document.getElementById('refresh-btn');
   const needsFilter = document.getElementById('needs-filter');
 
+  // Modais
+  const modalNeed = document.getElementById('modal-need');
+  const modalAlternative = document.getElementById('modal-alternative');
+  const modalDecision = document.getElementById('modal-decision');
+
+  const btnOpenNeed = document.getElementById('btn-open-need-modal');
+  const btnOpenAlt = document.getElementById('btn-open-alt-modal');
+  const btnOpenDec = document.getElementById('btn-open-dec-modal');
+
+  const formNeed = document.getElementById('form-need');
+  const formAlt = document.getElementById('form-alternative');
+  const formDec = document.getElementById('form-decision');
+
+  let currentData = null;
+
   // Tab switching
   tabs.forEach(button => {
     button.addEventListener('click', () => {
@@ -19,17 +34,154 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Modal controls
+  if (btnOpenNeed) btnOpenNeed.addEventListener('click', () => modalNeed.showModal());
+  if (btnOpenAlt) btnOpenAlt.addEventListener('click', () => {
+    populateNeedSelects();
+    modalAlternative.showModal();
+  });
+  if (btnOpenDec) btnOpenDec.addEventListener('click', () => {
+    populateNeedSelects();
+    modalDecision.showModal();
+  });
+
+  document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const dialog = e.target.closest('dialog');
+      if (dialog) dialog.close();
+    });
+  });
+
+  function populateNeedSelects() {
+    const selAlt = document.getElementById('select-need-for-alt');
+    const selDec = document.getElementById('select-need-for-dec');
+    if (!selAlt || !selDec || !currentData || !currentData.needs) return;
+
+    selAlt.innerHTML = '';
+    selDec.innerHTML = '';
+
+    currentData.needs.forEach(need => {
+      const opt1 = document.createElement('option');
+      opt1.value = need.id;
+      opt1.textContent = `${need.id} - ${need.title}`;
+      selAlt.appendChild(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = need.id;
+      opt2.textContent = `${need.id} - ${need.title}`;
+      selDec.appendChild(opt2);
+    });
+  }
+
+  // Submit Nova Necessidade
+  if (formNeed) {
+    formNeed.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formNeed);
+      const payload = {
+        title: formData.get('title'),
+        category: formData.get('category'),
+        quantity: parseInt(formData.get('quantity'), 10),
+        priority: formData.get('priority'),
+        responsible: formData.get('responsible')
+      };
+
+      try {
+        const res = await fetch('/api/needs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modalNeed.close();
+          formNeed.reset();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao cadastrar necessidade.');
+        }
+      } catch (err) {
+        console.error('Falha no envio:', err);
+      }
+    });
+  }
+
+  // Submit Nova Cotação
+  if (formAlt) {
+    formAlt.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formAlt);
+      const payload = {
+        need_id: formData.get('need_id'),
+        title: formData.get('title'),
+        supplier: formData.get('supplier'),
+        price: parseFloat(formData.get('price')),
+        description: formData.get('description'),
+        type: 'Produto Comercial'
+      };
+
+      try {
+        const res = await fetch('/api/alternatives', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modalAlternative.close();
+          formAlt.reset();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao salvar cotação.');
+        }
+      } catch (err) {
+        console.error('Falha no envio:', err);
+      }
+    });
+  }
+
+  // Submit Registrar Decisão
+  if (formDec) {
+    formDec.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formDec);
+      const payload = {
+        need_id: formData.get('need_id'),
+        selected_alternative_id: formData.get('selected_alternative_id'),
+        technical_justification: formData.get('technical_justification'),
+        decided_by: formData.get('decided_by'),
+        decision_date: new Date().toISOString().split('T')[0]
+      };
+
+      try {
+        const res = await fetch('/api/decisions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modalDecision.close();
+          formDec.reset();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao registrar parecer.');
+        }
+      } catch (err) {
+        console.error('Falha no envio:', err);
+      }
+    });
+  }
+
   async function loadDashboardData() {
     try {
       const response = await fetch('/api/data');
       if (!response.ok) {
         throw new Error('Falha ao obter dados');
       }
-      const data = await response.json();
-      renderData(data);
+      currentData = await response.json();
+      renderData(currentData);
     } catch (err) {
       console.warn('Usando estado padrão de demonstração:', err);
-      renderData(getFallbackData());
+      currentData = getFallbackData();
+      renderData(currentData);
     }
   }
 
@@ -84,6 +236,17 @@ document.addEventListener('DOMContentLoaded', () => {
     needs.forEach(need => {
       const card = document.createElement('article');
       card.className = 'system-card';
+      
+      let alternativesHtml = '';
+      if (need.alternatives && need.alternatives.length > 0) {
+        alternativesHtml = '<div style="margin-top:8px; font-size:0.78rem; border-top:1px solid #dce7ef; padding-top:6px;"><strong>Cotações / Alternativas:</strong><ul style="margin-left:14px;">';
+        need.alternatives.forEach(alt => {
+          const priceText = alt.prices && alt.prices[0] ? ` — R$ ${alt.prices[0].unit_price.toFixed(2)} (${alt.supplier_or_source})` : '';
+          alternativesHtml += `<li>${alt.id}: ${alt.title}${priceText}</li>`;
+        });
+        alternativesHtml += '</ul></div>';
+      }
+
       card.innerHTML = `
         <div class="system-card-head">
           <div>
@@ -96,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>Quantidade: ${need.quantity} | Prioridade: ${need.priority}</span>
           <span>Responsável: ${need.responsible}</span>
         </div>
+        ${alternativesHtml}
       `;
       container.appendChild(card);
     });
