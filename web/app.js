@@ -693,27 +693,43 @@ document.addEventListener('DOMContentLoaded', () => {
         alternativesHtml += '</ul></div>';
       }
 
-      const estBudgetCard = need.estimated_budget && need.estimated_budget > 0 ? ` · <strong>Orçamento Est.:</strong> R$ ${need.estimated_budget.toFixed(2)}` : '';
-      const descCard = need.description ? `<div style="font-size:0.81rem; color:var(--muted); line-height:1.45; word-break:break-word; background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0; margin:4px 0;"><strong>Descrição Técnica:</strong> ${need.description}</div>` : '';
+      const estBudgetHtml = need.estimated_budget && need.estimated_budget > 0 ? `<strong>Orçamento Est.:</strong> R$ ${need.estimated_budget.toFixed(2)}` : '';
+      const descCard = need.description ? `<div style="font-size:0.83rem; color:#475569; line-height:1.5; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; word-break:break-word;"><strong style="color:#334155;">Descrição Técnica:</strong> ${need.description}</div>` : '';
 
       card.innerHTML = `
-        <div class="system-card-head" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-          <div style="flex:1; min-width:0;">
-            <h4 style="margin:0; font-size:0.95rem; color:var(--navy); word-break:break-word;">${need.title}</h4>
-            <p style="margin:2px 0 0; font-size:0.78rem; color:var(--muted);"><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}${estBudgetCard}</p>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
-            <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
-            <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
+        <!-- Header Top: ID + Status + Budget -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #edf2f7; padding-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color:var(--teal); font-size:0.88rem;">${need.id}</strong>
             <span class="status-pill ${need.status === 'Decidida' || need.status === 'Adquirida' || need.status === 'Entregue' ? 'healthy' : 'degraded'}">${need.status}</span>
           </div>
+          <div style="font-size:0.8rem; color:var(--navy); font-weight:600;">
+            ${estBudgetHtml}
+          </div>
         </div>
+
+        <!-- Title & Category (Full Width) -->
+        <div style="width:100%;">
+          <h3 style="margin:0 0 4px 0; font-size:1.05rem; font-weight:700; color:var(--navy); line-height:1.35; word-break:break-word;">${need.title}</h3>
+          <div style="font-size:0.8rem; color:var(--muted);"><strong>Categoria:</strong> ${need.category}</div>
+        </div>
+
+        <!-- Description Box -->
         ${descCard}
-        <div class="system-card-meta" style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--muted); border-top:1px solid #e2e8f0; padding-top:8px; margin-top:auto;">
+
+        <!-- Meta Info -->
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--muted); border-top:1px solid #f1f5f9; padding-top:8px; margin-top:auto;">
           <span><strong>Qtd:</strong> ${need.quantity} | <strong>Prioridade:</strong> ${need.priority}</span>
           <span><strong>Responsável:</strong> ${need.responsible}</span>
         </div>
+
+        <!-- Actions Toolbar -->
+        <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; padding-top:6px; border-top:1px dashed #e2e8f0;">
+          <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
+          <button type="button" class="secondary-action" style="padding:4px 10px; font-size:0.75rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
+          <button type="button" class="secondary-action" style="padding:4px 10px; font-size:0.75rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
+        </div>
+
         ${alternativesHtml}
       `;
       container.appendChild(card);

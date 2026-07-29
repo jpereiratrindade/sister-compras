@@ -817,21 +817,21 @@ h1 {
 
 .system-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px;
 }
 
 .system-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 140px;
-  padding: 16px;
+  gap: 12px;
+  min-height: 160px;
+  padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 14px rgba(9, 37, 75, .05);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
