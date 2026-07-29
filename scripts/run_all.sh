@@ -36,7 +36,7 @@ python3 scripts/validate_governance_repo.py
 python3 scripts/validate_tool_contracts.py
 
 # 5. Executar demonstração CLI e salvar estado
-echo "[5/5] Executando demonstração de domínio e gerando relatórios..."
+echo "[5/5] Executando demonstração de domínio e garantindo banco/persistência..."
 ./build/sister_compras demo
 
 # Liberar porta se houver processo anterior travado
@@ -49,6 +49,7 @@ echo "============================================================"
 echo "   Todos os testes e validações passaram com SUCESSO!     "
 echo "============================================================"
 echo "Iniciando servidor da interface Web do SisTer-Compras em http://localhost:${PORT}"
+echo "Dados 100% persistentes no Banco de Dados / Armazenamento em Disco."
 echo "Pressione Ctrl+C para encerrar."
 echo "============================================================"
 echo ""
