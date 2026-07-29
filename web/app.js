@@ -193,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = proposal.action || 'create_need';
     const params = proposal.params || {};
     const explanation = proposal.explanation || 'Proposta de Ação';
+    const options = proposal.options || [];
 
     // Tratar pedido de esclarecimento (ask_clarification)
     if (action === 'ask_clarification') {
@@ -202,9 +203,30 @@ document.addEventListener('DOMContentLoaded', () => {
       askDiv.style.padding = '10px 12px';
       askDiv.style.borderRadius = '8px';
       askDiv.style.fontSize = '0.84rem';
-      askDiv.innerHTML = `<strong>Assistente IA:</strong> ${explanation}`;
+      
+      let optionsButtonsHtml = '';
+      if (options && options.length > 0) {
+        optionsButtonsHtml = '<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">';
+        options.forEach(opt => {
+          optionsButtonsHtml += `<button type="button" class="option-chip-btn" data-option="${opt}" style="background:var(--teal); color:#fff; border:none; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold; cursor:pointer;">⚡ ${opt}</button>`;
+        });
+        optionsButtonsHtml += '</div>';
+      }
+
+      askDiv.innerHTML = `<strong>Assistente IA:</strong> ${explanation}${optionsButtonsHtml}`;
       chatMessages.appendChild(askDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Event listener para os botões de opção interativos
+      askDiv.querySelectorAll('.option-chip-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const selectedVal = e.target.dataset.option;
+          const chatInput = document.getElementById('chat-input');
+          chatInput.value = `Categoria selecionada: ${selectedVal}`;
+          formChatSend.requestSubmit();
+        });
+      });
+
       return;
     }
 
@@ -213,9 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (action === 'create_need') {
       actionLabel = 'Cadastrar Nova Necessidade';
+      const estBudget = params.estimated_budget ? ` | <strong>Orçamento Estimado:</strong> R$ ${params.estimated_budget.toFixed(2)}` : '';
       detailsHtml = `<strong>Título:</strong> ${params.title || 'N/A'}<br>
                      <strong>Categoria:</strong> ${params.category || 'Equipamentos Científicos'} | <strong>Quantidade:</strong> ${params.quantity || 1}<br>
-                     <strong>Prioridade:</strong> ${params.priority || 'Essencial'}`;
+                     <strong>Prioridade:</strong> ${params.priority || 'Essencial'}${estBudget}`;
     } else if (action === 'add_quote') {
       actionLabel = 'Adicionar Cotação / Alternativa';
       detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>

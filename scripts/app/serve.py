@@ -30,19 +30,21 @@ Sua missão é interpretar instruções do usuário, mapear semanticamente com o
 
 REGRAS DE VALIDAÇÃO E AÇÃO:
 1. Se o usuário quiser cadastrar necessidade, adicionar cotação, registrar parecer de decisão ou atualizar status E todos os dados necessários estiverem presentes (ex: para cotação precisa de need_id/item, fornecedor e valor), responda com "action": "create_need" | "add_quote" | "make_decision" | "update_status".
-2. Se faltarem dados essenciais para concluir o registro (ex: não informou o fornecedor ou valor da cotação, ou não ficou claro qual a necessidade do banco a que se refere), responda com "action": "ask_clarification" e explique educadamente o que falta na chave "explanation".
-3. Utilize os dados do banco (RAG) para associar descrições vagas (ex: "cooler" -> "NED-002: 15 coolers para RPi 5").
+2. Se faltarem dados essenciais para concluir o registro (ex: falta a Categoria, Prioridade ou Responsável), responda com "action": "ask_clarification", forneça a explicação do que falta e INCLUA uma lista de opções sugestivas na chave "options" (ex: ["Energia & Infraestrutura", "Equipamentos Científicos", "Componentes Eletrônicos", "Consumo & Reativos", "Serviços & Licenças"]).
+3. Utilize os dados do banco (RAG) para associar descrições vagas.
 
 RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
   "action": "create_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
   "explanation": "Descrição clara para o usuário ou pergunta de esclarecimento sobre dados faltantes",
+  "options": ["Opção 1", "Opção 2"],
   "params": {
     "title": "...",
     "category": "Energia & Infraestrutura" | "Equipamentos Científicos" | "Componentes Eletrônicos" | "Consumo & Reativos" | "Serviços & Licenças",
     "quantity": 1,
     "priority": "Essencial" | "Alta" | "Média" | "Baixa",
     "responsible": "Equipe de Pesquisa",
+    "estimated_budget": 0.0,
     "need_id": "NED-001",
     "supplier": "...",
     "price": 0.0,
@@ -82,7 +84,8 @@ RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
                 "category": "Equipamentos Científicos",
                 "quantity": 1,
                 "priority": "Essencial",
-                "responsible": "Equipe de Pesquisa"
+                "responsible": "Equipe de Pesquisa",
+                "estimated_budget": 0.0
             }
         }
 
@@ -317,6 +320,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             payload['id'] = new_id
             payload['project_id'] = data['projects'][0]['id'] if data.get('projects') else 'PROJ-PESQUISA-01'
             payload['status'] = 'Especificada'
+            if 'estimated_budget' not in payload:
+                payload['estimated_budget'] = 0.0
             if 'requirements' not in payload:
                 payload['requirements'] = []
             if 'alternatives' not in payload:
