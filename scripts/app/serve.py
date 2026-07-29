@@ -30,9 +30,11 @@ Sua missão é extrair E MANTER acumulados todos os dados informados pelo usuár
 
 REGRAS RAG & ACÚMULO DE PARÂMETROS:
 1. LEIA O HISTÓRICO COMPLETO DA CONVERSA para não perder o título, quantidade, prioridade ou valores informados em mensagens anteriores.
-2. Se em uma mensagem anterior o usuário informou o título (ex: "15 coolers para RPi 5") e agora selecionou a categoria (ex: "Componentes Eletrônicos"), MANTENHA O TÍTULO ("Coolers para RPi 5") E A QUANTIDADE (15) ACUMULADOS!
-3. Se todos os dados necessários estiverem acumulados, responda com "action": "create_need" | "add_quote" | "make_decision" | "update_status".
-4. Se ainda faltarem dados essenciais, responda com "action": "ask_clarification", traga o que falta na "explanation" e opções na chave "options".
+2. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
+3. Se o usuário escolher ou mencionar uma prioridade ("Essencial", "Alta", "Média", "Baixa"), GRAVE ESSE VALOR NA CHAVE "priority".
+4. Se o responsável não for mencionado explicitamente, PREENCHA COM "Equipe de Pesquisa" por padrão.
+5. Se todos os dados necessários estiverem acumulados (título, categoria e prioridade para nova necessidade), responda com "action": "create_need".
+6. Se ainda faltarem a Categoria ou a Prioridade, responda com "action": "ask_clarification", traga a pergunta na "explanation" e a lista de opções na chave "options".
 
 RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
@@ -45,7 +47,7 @@ RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
     "quantity": 1,
     "priority": "Essencial" | "Alta" | "Média" | "Baixa",
     "responsible": "Equipe de Pesquisa",
-    "estimated_budget": 0.0,
+    "estimated_budget": 80.0,
     "need_id": "NED-001",
     "supplier": "...",
     "price": 0.0,

@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => {
           const selectedVal = e.target.dataset.option;
           const chatInput = document.getElementById('chat-input');
-          chatInput.value = `Categoria selecionada: ${selectedVal}`;
+          chatInput.value = `Opção selecionada: ${selectedVal}`;
           formChatSend.requestSubmit();
         });
       });
@@ -693,7 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isEstimated = true;
       }
 
-      const priceDisplay = isEstimated ? `R$ ${need.estimated_budget.toFixed(2)} <small style="color:var(--muted);">(Estimado)</small>` : `R$ ${(subtotal / (need.quantity || 1)).toFixed(2)}`;
       const subtotalDisplay = isEstimated ? `R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} <small style="color:var(--muted);">(Estimado)</small>` : `R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
       const row = document.createElement('tr');
