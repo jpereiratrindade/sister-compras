@@ -2,6 +2,7 @@
 import http.server
 import socketserver
 import urllib.request
+import urllib.parse
 import urllib.error
 import sys
 import os
@@ -89,9 +90,13 @@ Importante: Sua resposta é uma sugestão de IA. A decisão final é exclusivame
     except Exception as e:
         return f"[Erro Ollama] Falha ao comunicar com {model_name} em {OLLAMA_URL}: {e}"
 
-def generate_print_html(data):
+def generate_print_html(data, filter_ids=None):
     project = data.get('projects', [{}])[0]
     needs = data.get('needs', [])
+    
+    if filter_ids:
+        needs = [n for n in needs if n.get('id') in filter_ids]
+
     decisions = {d['need_id']: d for d in data.get('decisions', [])}
     
     total_budget = 0.0
@@ -130,6 +135,9 @@ def generate_print_html(data):
         </tr>
         """
 
+    if not items_rows:
+        items_rows = "<tr><td colspan='8' style='text-align:center; padding:20px;'>*Nenhum item selecionado.*</td></tr>"
+
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -155,7 +163,7 @@ def generate_print_html(data):
     <div class="header">
         <div>
             <span style="font-size:12px; font-weight:bold; color:#1c9b98;">SISTER-COMPRAS · MANIFESTO DE AQUISIÇÃO</span>
-            <h1>Lista Oficial de Compras do Projeto</h1>
+            <h1>Lista Oficial de Compras do Projeto {'(Lote Selecionado)' if filter_ids else ''}</h1>
         </div>
         <div style="text-align:right;">
             <strong>Data: 2026-07-29</strong>
@@ -165,6 +173,7 @@ def generate_print_html(data):
     <div class="meta">
         <strong>Projeto:</strong> {project.get('name')} ({project.get('id')})<br>
         <strong>Pesquisador Responsável:</strong> {project.get('lead_researcher')}<br>
+        <strong>Itens no Lote:</strong> {len(needs)} item(ns)<br>
         <strong>Formato de Integração:</strong> Manifesto por Contrato (v0.2.0)
     </div>
 
@@ -187,7 +196,7 @@ def generate_print_html(data):
     </table>
 
     <div class="total-box">
-        ORÇAMENTO TOTAL APROVADO: R$ {total_budget:,.2f}
+        ORÇAMENTO TOTAL DO LOTE: R$ {total_budget:,.2f}
     </div>
 
     <div class="signatures">
@@ -208,7 +217,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
     def do_GET(self):
-        if self.path == '/api/data':
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+
+        if path == '/api/data':
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -216,7 +229,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             data = load_data()
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
             return
-        elif self.path == '/api/ollama/models':
+        elif path == '/api/ollama/models':
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -228,12 +241,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             }
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
             return
-        elif self.path == '/api/reports/shopping-list':
+        elif path == '/api/reports/shopping-list':
             self.send_response(200)
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             data = load_data()
-            html = generate_print_html(data)
+            filter_ids = None
+            if 'ids' in query and query['ids']:
+                filter_ids = [i.strip() for i in query['ids'][0].split(',') if i.strip()]
+            html = generate_print_html(data, filter_ids=filter_ids)
             self.wfile.write(html.encode('utf-8'))
             return
         return super().do_GET()

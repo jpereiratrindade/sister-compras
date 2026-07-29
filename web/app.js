@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
   const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
+  const btnPrintSelected = document.getElementById('btn-print-selected-shopping');
+  const checkAllShopping = document.getElementById('check-all-shopping');
 
   const formNeed = document.getElementById('form-need');
   const formAlt = document.getElementById('form-alternative');
@@ -102,6 +104,35 @@ document.addEventListener('DOMContentLoaded', () => {
       opt2.textContent = `${need.id} - ${need.title}`;
       if (targetNeedId && need.id === targetNeedId) opt2.selected = true;
       selDec.appendChild(opt2);
+    });
+  }
+
+  // Checkbox management for selective PDF export
+  function updateSelectedCount() {
+    const checked = document.querySelectorAll('.shopping-item-check:checked');
+    const countSpan = document.getElementById('selected-shopping-count');
+    if (countSpan) countSpan.textContent = checked.length;
+  }
+
+  if (checkAllShopping) {
+    checkAllShopping.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      document.querySelectorAll('.shopping-item-check').forEach(ck => {
+        ck.checked = isChecked;
+      });
+      updateSelectedCount();
+    });
+  }
+
+  if (btnPrintSelected) {
+    btnPrintSelected.addEventListener('click', () => {
+      const checked = document.querySelectorAll('.shopping-item-check:checked');
+      if (checked.length === 0) {
+        alert('Selecione ao menos um item da tabela para imprimir a Lista de Compras.');
+        return;
+      }
+      const ids = Array.from(checked).map(c => c.dataset.needId).join(',');
+      window.open(`/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`, '_blank');
     });
   }
 
@@ -318,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getFallbackData() {
     return {
-      version: '0.2.0',
+      version: '0.3.0',
       projects: [{
         id: 'PROJ-PESQUISA-01',
         name: 'Projeto de Pesquisa e Desenvolvimento Tecnológico',
@@ -464,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const row = document.createElement('tr');
       row.innerHTML = `
+        <td style="text-align:center;"><input type="checkbox" class="shopping-item-check" data-need-id="${need.id}"></td>
         <td><strong>${need.id}</strong></td>
         <td>${need.title}<br><small style="color:var(--muted);">${altTitle}</small></td>
         <td>${need.category}</td>
@@ -478,6 +510,11 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       shoppingTableBody.appendChild(row);
     });
+
+    document.querySelectorAll('.shopping-item-check').forEach(ck => {
+      ck.addEventListener('change', updateSelectedCount);
+    });
+    updateSelectedCount();
 
     document.getElementById('shopping-total-budget').textContent = `R$ ${totalBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     document.getElementById('shopping-items-count').textContent = decisions.length;

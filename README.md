@@ -1,6 +1,6 @@
 # SisTer-Compras
 
-**SisTer-Compras** é um subsistema federado autônomo do ecossistema **SisTer** desenvolvido em **C++20** para governança de necessidades, especificação de requisitos, cotações, evidências de proveniência e suporte à decisão técnica em projetos de pesquisa.
+**SisTer-Compras** é um subsistema federado autônomo do ecossistema **SisTer** desenvolvido em **C++20** para governança de necessidades, especificação de requisitos, cotações, evidências de proveniência, suporte à decisão técnica supervisionada por IA e gestão do ciclo de vida de aquisições em projetos de pesquisa.
 
 ```text
 projetos e subsistemas do SisTer
@@ -9,27 +9,42 @@ projetos e subsistemas do SisTer
               ↓
         SisTer-Compras
               ↓
-especificação, evidências, avaliação,
-decisão, aquisição e ciclo de vida
+especificação, evidências, cotações,
+decisão técnica, lista de compras e entregas
 ```
 
 ## Repositório e Controle de Versão
 
 - **GitHub Remote:** `git@github.com:jpereiratrindade/sister-compras.git`
-- **Política de Versionamento:** Semantic Versioning com tags Git padrão (`v0.1.0`, `v0.2.0`, ...).
-- **Versão Atual:** `0.2.0` (definida em `VERSION` e `CMakeLists.txt`).
+- **Política de Versionamento:** Semantic Versioning com tags Git anotadas padrão (`v0.1.0`, `v0.2.0`, `v0.3.0`, ...).
+- **Versão Atual:** `0.3.0` (definida em `VERSION` e `CMakeLists.txt`).
 
 ### Convenção de Tags Git
 
 As tags seguem o padrão anotado Semantic Versioning:
 
 ```bash
-# Criar tag de release
-git tag -a v0.2.0 -m "release: v0.2.0 - SisTer-Compras C++20 domain core, JSON contracts, CLI e Web UI"
+# Criar tag de release v0.3.0
+git tag -a v0.3.0 -m "release: v0.3.0 - Módulo Lista de Compras, Impressão PDF Selecionada e Assistente IA Ollama (qwen2.5:14b)"
 
 # Enviar branch principal e tags para o GitHub
-git push -u origin main --tags
+git push origin main --tags
 ```
+
+---
+
+## Recursos da Versão 0.3.0
+
+1. **Módulo "Lista de Compras" & Gestão Orçamentária:**
+   - Visualização consolidada de itens aprovados para aquisição.
+   - Cálculo automático do **Orçamento Total do Projeto em R$**.
+   - Gestão de status do ciclo de vida: `Especificada` → `Em análise` → `Decidida` → `Adquirida` → `Entregue`.
+2. **Gerador de Lista Oficial de Compras (PDF / Impressão Personalizada):**
+   - Impressão total ou **filtrada por seleção de checkboxes** (`/api/reports/shopping-list?ids=...`).
+   - Documento formatado para departamento de compras com tabela de itens, valores e assinaturas.
+3. **Assistente IA Supervisionado com Ollama Local (`qwen2.5:14b`):**
+   - **Especificação:** Geração de requisitos técnicos automáticos com base no título do recurso.
+   - **Análise & Decisão:** Avaliação de conformidade técnica, mapeamento de lacunas e rascunho de parecer técnico com cópia em 1-clique.
 
 ---
 
@@ -61,12 +76,6 @@ Acesse a interface web em: **`http://localhost:8002`**
 - `domain::Evidence`: Registros de proveniencia, confiança e validação por especialistas.
 - `domain::PriceObservation`: Cotaçoes temporais de fornecedores com moeda e URL.
 - `domain::Decision`: Decisao formal registrada por pesquisador com justificativa tecnica.
-
-## Interface Web e API REST
-
-- **Dashboard:** Visão geral de métricas, necessidades, alternativas e timeline de decisões.
-- **Visual Identity:** Totalmente integrado ao sistema de design claro e navy do ecossistema SisTer.
-- **Persistência:** Dados salvos localmente em `storage/compras_data.json`.
 
 ## Compilação e Testes Manuais
 

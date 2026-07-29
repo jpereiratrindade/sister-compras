@@ -57,7 +57,7 @@
         </nav>
         <div class="sidebar-footer">
           <span>Contrato Ativo</span>
-          <strong>sister-compras/0.2.0</strong>
+          <strong>sister-compras/0.3.0</strong>
         </div>
       </aside>
 
@@ -160,11 +160,14 @@
               <p>Relatório de aquisição e gestão de entrega dos recursos aprovados.</p>
             </div>
             <div class="action-button-group">
-              <a href="/api/reports/shopping-list" target="_blank" class="primary-action" style="text-decoration:none;">
-                🖨️ Imprimir Lista Oficial (PDF)
+              <button type="button" class="primary-action" id="btn-print-selected-shopping">
+                🖨️ Imprimir Selecionados (<span id="selected-shopping-count">0</span>)
+              </button>
+              <a href="/api/reports/shopping-list" target="_blank" class="secondary-action" style="text-decoration:none;">
+                Imprimir Todos
               </a>
               <a href="/api/data" target="_blank" class="secondary-action" style="text-decoration:none;">
-                Exportar Contrato JSON
+                Exportar JSON
               </a>
             </div>
           </div>
@@ -199,6 +202,7 @@
               <table>
                 <thead>
                   <tr>
+                    <th style="width:36px; text-align:center;"><input type="checkbox" id="check-all-shopping" title="Selecionar Todos"></th>
                     <th>Código</th>
                     <th>Necessidade / Item Aprovado</th>
                     <th>Categoria</th>
