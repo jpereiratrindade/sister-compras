@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenNeed = document.getElementById('btn-open-need-modal');
   const btnOpenNeed2 = document.getElementById('btn-open-need-modal-2');
   const btnOpenAlt = document.getElementById('btn-open-alt-modal');
+  const btnOpenAlt2 = document.getElementById('btn-open-alt-modal-2');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
+  const btnOpenDec2 = document.getElementById('btn-open-dec-modal-2');
   const btnOpenChat = document.getElementById('btn-open-chat-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
   const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
@@ -28,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterCategory = document.getElementById('filter-need-category');
   const filterPriority = document.getElementById('filter-need-priority');
   const filterStatus = document.getElementById('filter-need-status');
+
+  // Controles de Filtro da Aba de Decisões
+  const tabDecisionsSearch = document.getElementById('tab-decisions-search');
 
   const formNeed = document.getElementById('form-need');
   const formEditNeed = document.getElementById('form-edit-need');
@@ -64,7 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
     populateNeedSelects();
     modalAlternative.showModal();
   });
+  if (btnOpenAlt2) btnOpenAlt2.addEventListener('click', () => {
+    populateNeedSelects();
+    modalAlternative.showModal();
+  });
   if (btnOpenDec) btnOpenDec.addEventListener('click', () => {
+    populateNeedSelects();
+    modalDecision.showModal();
+  });
+  if (btnOpenDec2) btnOpenDec2.addEventListener('click', () => {
     populateNeedSelects();
     modalDecision.showModal();
   });
@@ -120,6 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+
+  if (tabDecisionsSearch) {
+    tabDecisionsSearch.addEventListener('input', () => {
+      if (currentData) renderDecisionsTimeline(currentData.decisions || [], currentData.needs || []);
+    });
+  }
 
   // Load Ollama Models
   async function loadOllamaModels() {
@@ -763,6 +782,99 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function renderDecisionsTimeline(decisions, needs) {
+    const timelineContainer = document.getElementById('decisions-timeline');
+    if (!timelineContainer) return;
+    timelineContainer.innerHTML = '';
+
+    const query = tabDecisionsSearch ? tabDecisionsSearch.value.trim().toLowerCase() : '';
+    const needsMap = {};
+    needs.forEach(n => { needsMap[n.id] = n; });
+
+    const filtered = decisions.filter(dec => {
+      if (!query) return true;
+      const targetNeed = needsMap[dec.need_id] || {};
+      const fullText = `${dec.id} ${dec.need_id} ${targetNeed.title || ''} ${dec.decided_by} ${dec.technical_justification}`.toLowerCase();
+      return fullText.includes(query);
+    });
+
+    if (filtered.length === 0) {
+      timelineContainer.innerHTML = `
+        <div style="text-align:center; padding:48px 24px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; margin-top:12px;">
+          <div style="font-size:2.4rem; margin-bottom:8px;">📋</div>
+          <h3 style="margin:0 0 6px 0; color:var(--navy); font-size:1.1rem;">Nenhum Parecer Técnico Registrado</h3>
+          <p style="margin:0 0 16px 0; font-size:0.85rem; color:var(--muted);">Registre a aprovação humana de uma cotação para formalizar o parecer técnico e gerar a trilha de auditoria.</p>
+          <button type="button" class="primary-action" onclick="populateNeedSelects(); document.getElementById('modal-decision').showModal();" style="display:inline-flex; align-items:center; gap:6px;">
+            + Registrar Primeiro Parecer Técnico
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(dec => {
+      const need = needsMap[dec.need_id] || { title: 'Necessidade não encontrada', category: 'N/A' };
+      let selectedAltTitle = dec.selected_alternative_id;
+      let supplierName = 'N/A';
+
+      if (need.alternatives) {
+        const alt = need.alternatives.find(a => a.id === dec.selected_alternative_id);
+        if (alt) {
+          selectedAltTitle = alt.title;
+          supplierName = alt.supplier_or_source || 'N/A';
+        }
+      }
+
+      const card = document.createElement('article');
+      card.style.background = '#fff';
+      card.style.border = '1px solid #e2e8f0';
+      card.style.borderRadius = '12px';
+      card.style.padding = '20px';
+      card.style.boxShadow = '0 4px 14px rgba(9,37,75,0.04)';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '12px';
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #edf2f7; padding-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="background:var(--teal); color:#fff; font-size:0.75rem; font-weight:bold; padding:4px 10px; border-radius:12px;">✅ Decisão Humana Validada</span>
+            <strong style="color:var(--navy); font-size:0.9rem;">${dec.id}</strong>
+            <span style="color:var(--muted); font-size:0.8rem;">· ${dec.decision_date}</span>
+          </div>
+          <div>
+            <button type="button" class="ai-button" onclick="triggerAiAnalysis('${dec.need_id}')" style="padding:4px 10px; font-size:0.75rem;" title="Reanalisar conformidade técnica com IA (qwen2.5:14b)">
+              ⚡ Reanalisar com IA
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size:0.78rem; font-weight:bold; color:var(--teal); text-transform:uppercase;">Necessidade Vinculada</span>
+          <h4 style="margin:2px 0 0 0; font-size:1.05rem; color:var(--navy); font-weight:700;">${need.id} — ${need.title}</h4>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; font-size:0.83rem;">
+          <div>
+            <strong style="color:var(--navy); display:block; margin-bottom:2px;">Alternativa / Cotação Aprovada:</strong>
+            <span style="color:#09254b; font-weight:600;">${dec.selected_alternative_id}: ${selectedAltTitle}</span>
+          </div>
+          <div>
+            <strong style="color:var(--navy); display:block; margin-bottom:2px;">Aprovado por:</strong>
+            <span style="color:#09254b;">${dec.decided_by}</span>
+          </div>
+        </div>
+
+        <div style="background:#eaf7f5; border-left:4px solid var(--teal); padding:12px 16px; border-radius:0 8px 8px 0; font-size:0.85rem; color:#0c3634;">
+          <strong style="display:block; margin-bottom:4px; font-size:0.78rem; text-transform:uppercase; color:#0e5d59;">Parecer & Justificativa Técnica:</strong>
+          <span style="font-style:italic; line-height:1.5;">"${dec.technical_justification}"</span>
+        </div>
+      `;
+
+      timelineContainer.appendChild(card);
+    });
+  }
+
   function renderData(data) {
     const project = data.projects && data.projects[0];
     if (project) {
@@ -843,23 +955,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render Needs Table with Filters
     renderNeedsTable(needs);
 
-    // Render Decisions Timeline
-    const timeline = document.getElementById('decisions-timeline');
-    timeline.innerHTML = '';
-    decisions.forEach(dec => {
-      const item = document.createElement('div');
-      item.className = 'timeline-item';
-      item.innerHTML = `
-        <div class="timeline-head">
-          <strong>Decisão [${dec.id}] — Necessidade ${dec.need_id}</strong>
-          <time>${dec.decision_date}</time>
-        </div>
-        <p><strong>Alternativa Selecionada:</strong> ${dec.selected_alternative_id}</p>
-        <p><strong>Decidido por:</strong> ${dec.decided_by}</p>
-        <p style="margin-top:6px; font-style:italic;">"${dec.technical_justification}"</p>
-      `;
-      timeline.appendChild(item);
-    });
+    // Render Decisions Timeline with Interactive Cards & Search
+    renderDecisionsTimeline(decisions, needs);
 
     // Render Shopping List Tab
     let totalBudget = 0.0;
