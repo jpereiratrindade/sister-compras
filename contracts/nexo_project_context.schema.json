@@ -42,6 +42,10 @@
       "required": ["project_id", "name", "status"],
       "properties": {
         "project_id": {"type": "string"},
+        "procurement_project_id": {
+          "type": ["string", "null"],
+          "description": "Referência do mesmo projeto no contexto Nexo-Compras."
+        },
         "name": {"type": "string"},
         "status": {"type": "string"}
       }

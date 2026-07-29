@@ -24,20 +24,31 @@ status="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE_URL}/")"
 curl -fsS "${headers[@]}" "${BASE_URL}/api/me" |
   python3 -c 'import json,sys; value=json.load(sys.stdin); assert value["subject"] == "smoke-test"'
 
-curl -fsS "${headers[@]}" "${BASE_URL}/api/nexo/context" |
+context_response="$(
+  curl -sS -w $'\n%{http_code}' "${headers[@]}" \
+    "${BASE_URL}/api/nexo/context"
+)"
+context_status="${context_response##*$'\n'}"
+context_body="${context_response%$'\n'*}"
+if [[ "$context_status" == "200" ]]; then
   python3 -c '
 import json, sys
-value = json.load(sys.stdin)
+value = json.loads(sys.argv[1])
 assert value["contract_version"] == "1.0.0"
 assert value["system_id"] == "sister_nexo"
 assert value["project"]["project_id"]
 assert isinstance(value["research_activities"], list)
 assert isinstance(value["operational_activities"], list)
-'
+' "$context_body"
+elif [[ "$context_status" != "403" ]]; then
+  echo "Contexto do Nexo retornou HTTP ${context_status}." >&2
+  exit 1
+fi
 
 page="$(curl -fsS "${headers[@]}" "${BASE_URL}/")"
 grep -q "<title>Nexo-Compras" <<<"$page"
-grep -q 'nexo-compras.integration/1.0.0' <<<"$page"
+grep -q 'nexo-compras.profile/1.0.0' <<<"$page"
+grep -q 'id="need-project-select"' <<<"$page"
 python3 -c '
 from html.parser import HTMLParser
 import sys

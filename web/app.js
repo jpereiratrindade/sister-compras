@@ -52,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentData = null;
   let currentAgreement = null;
   let currentNexoContext = null;
+  let currentProjectId =
+    localStorage.getItem('nexo_compras_project_id') || '';
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
   let chatHistoryList = [];
@@ -60,6 +62,44 @@ document.addEventListener('DOMContentLoaded', () => {
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+
+  function renderProjectSelectors() {
+    const projects = currentNexoContext?.projects || [];
+    const comprasProjectId = project =>
+      project.procurement_project_id || project.project_id;
+    if (!projects.some(project =>
+      comprasProjectId(project) === currentProjectId)) {
+      currentProjectId = projects[0]
+        ? comprasProjectId(projects[0]) : '';
+    }
+    if (currentProjectId) {
+      localStorage.setItem('nexo_compras_project_id', currentProjectId);
+    }
+    const options = projects.map(project =>
+      `<option value="${escapeHtml(comprasProjectId(project))}"${
+        comprasProjectId(project) === currentProjectId ? ' selected' : ''
+      }>${escapeHtml(project.name)} · ${escapeHtml(project.project_id)}</option>`
+    ).join('');
+    const activeSelect = document.getElementById('active-project-select');
+    const needSelect = document.getElementById('need-project-select');
+    if (activeSelect) {
+      activeSelect.innerHTML = options ||
+        '<option value="">Nenhum projeto autorizado</option>';
+      activeSelect.disabled = !projects.length;
+    }
+    if (needSelect) {
+      needSelect.innerHTML =
+        '<option value="">Selecione um projeto</option>' + options;
+      needSelect.value = currentProjectId;
+    }
+    const query = currentProjectId
+      ? `?project_id=${encodeURIComponent(currentProjectId)}` : '';
+    const reportLink = document.getElementById('shopping-report-link');
+    const rawLink = document.getElementById('raw-data-link');
+    if (reportLink) reportLink.href =
+      apiUrl(`/api/reports/shopping-list${query}`);
+    if (rawLink) rawLink.href = apiUrl(`/api/data${query}`);
+  }
 
   // Tab switching
   tabs.forEach(button => {
@@ -151,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       currentAgreement = agreementPayload.agreement;
       if (contextResponse.ok) currentNexoContext = await contextResponse.json();
+      renderProjectSelectors();
       renderIntegrationAgreement();
     } catch (error) {
       const message = document.getElementById('compras-agreement-message');
@@ -225,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.openNeedModal = function() {
     prefillLeadResearcherInForms();
+    renderProjectSelectors();
     if (modalNeed) modalNeed.showModal();
   };
 
@@ -407,7 +449,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const ids = Array.from(checked).map(c => c.dataset.needId).join(',');
-      window.open(apiUrl(`/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`), '_blank');
+      window.open(apiUrl(
+        `/api/reports/shopping-list?project_id=${
+          encodeURIComponent(currentProjectId)
+        }&ids=${encodeURIComponent(ids)}`), '_blank');
     });
   }
 
@@ -542,7 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(apiUrl('/api/ollama/intent'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: messageText, history: chatHistoryList, model: model })
+          body: JSON.stringify({
+            project_id: currentProjectId,
+            message: messageText,
+            history: chatHistoryList,
+            model: model
+          })
         });
 
         if (res.ok) {
@@ -674,7 +724,13 @@ document.addEventListener('DOMContentLoaded', () => {
       proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--teal); font-weight:bold;">Gravando no Banco de Dados...</div>';
       
       let targetUrl = '/api/needs';
-      let bodyPayload = params;
+      let bodyPayload = {
+        ...params,
+        project_id: currentProjectId,
+        project_name: (currentNexoContext?.projects || []).find(project =>
+          (project.procurement_project_id || project.project_id) ===
+            currentProjectId)?.name || ''
+      };
 
       if (action === 'update_need') targetUrl = '/api/needs/update';
       if (action === 'delete_need') targetUrl = '/api/needs/delete';
@@ -760,6 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             need_id: 'TEMP',
+            project_id: document.getElementById('need-project-select')?.value,
             model: model,
             mode: 'specify'
           })
@@ -815,6 +872,10 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const formData = new FormData(formNeed);
       const payload = {
+        project_id: formData.get('project_id'),
+        project_name: (currentNexoContext?.projects || []).find(project =>
+          (project.procurement_project_id || project.project_id) ===
+            formData.get('project_id'))?.name || '',
         title: formData.get('title'),
         category: formData.get('category'),
         quantity: parseInt(formData.get('quantity'), 10),
@@ -910,15 +971,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadDashboardData() {
     try {
-      const response = await fetch(apiUrl('/api/data'));
+      if (!currentNexoContext) await loadIntegrationAgreement();
+      if (!currentProjectId) {
+        throw new Error('Nenhum projeto autorizado foi recebido do Nexo.');
+      }
+      const response = await fetch(apiUrl(
+        `/api/data?project_id=${encodeURIComponent(currentProjectId)}`));
       if (!response.ok) {
         throw new Error('Falha ao obter dados');
       }
       currentData = await response.json();
       renderData(currentData);
     } catch (err) {
-      console.warn('Usando estado padrão de demonstração:', err);
-      currentData = getFallbackData();
+      console.warn('Dados do projeto indisponíveis:', err);
+      currentData = {
+        version: '0.4.0', projects: [], needs: [], decisions: []
+      };
       renderData(currentData);
     }
   }
@@ -927,13 +995,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       version: '0.4.0',
       projects: [{
-        id: 'PROJ-PESQUISA-01',
+        id: 'PROJ-RESILIENCIA',
         name: 'Projeto de Pesquisa e Desenvolvimento Tecnológico',
         lead_researcher: 'José Pedro Trindade'
       }],
       needs: [{
         id: 'NED-001',
-        project_id: 'PROJ-PESQUISA-01',
+        project_id: 'PROJ-RESILIENCIA',
         title: 'Alimentar unidade computacional por 8h em operação de campo',
         category: 'Energia & Infraestrutura',
         quantity: 2,
@@ -1249,6 +1317,15 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', loadDashboardData);
   }
 
+  document.getElementById('active-project-select')?.addEventListener(
+    'change', async event => {
+      currentProjectId = event.currentTarget.value;
+      localStorage.setItem('nexo_compras_project_id', currentProjectId);
+      renderProjectSelectors();
+      await loadDashboardData();
+    }
+  );
+
   if (needsFilter) {
     needsFilter.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
@@ -1261,8 +1338,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadOllamaModels();
-  loadDashboardData();
-  loadIntegrationAgreement();
+  (async () => {
+    await loadIntegrationAgreement();
+    await loadDashboardData();
+  })();
   if (location.hash === '#integration') {
     document.querySelector('[data-tab="integration"]')?.click();
   }

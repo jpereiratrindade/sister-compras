@@ -146,3 +146,38 @@ CREATE TABLE IF NOT EXISTS integration_agreement_events (
 
 CREATE INDEX IF NOT EXISTS integration_agreement_events_agreement_idx
     ON integration_agreement_events(agreement_id, occurred_at);
+
+CREATE TABLE IF NOT EXISTS compras_schema_migrations (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DO $migration$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM compras_schema_migrations
+        WHERE version='002_canonical_nexo_project_reference'
+    ) THEN
+        INSERT INTO projects(
+            id,name,description,lead_researcher,start_date,end_date)
+        SELECT
+            'PROJ-RESILIENCIA',
+            'Projeto Resiliência',
+            coalesce(description,
+                'Referência de projeto sob autoridade do SisTer Nexo.'),
+            lead_researcher,
+            start_date,
+            end_date
+        FROM projects
+        WHERE id='PROJ-PESQUISA-01'
+        ON CONFLICT(id) DO NOTHING;
+
+        UPDATE needs
+        SET project_id='PROJ-RESILIENCIA'
+        WHERE project_id='PROJ-PESQUISA-01';
+
+        INSERT INTO compras_schema_migrations(version)
+        VALUES('002_canonical_nexo_project_reference');
+    END IF;
+END
+$migration$;

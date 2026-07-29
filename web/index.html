@@ -99,7 +99,13 @@
             <h2>Gestão de Recursos de Pesquisa</h2>
             <div style="display:flex; align-items:center; gap:8px;">
               <p id="project-header-info" style="margin:0;">Carregando informações do projeto...</p>
-              <button type="button" class="secondary-action" id="btn-open-project-modal" style="padding:2px 8px; font-size:0.72rem; cursor:pointer;" title="Editar Pesquisador Responsável">✏️ Editar Pesquisador</button>
+              <label>Projeto
+                <select id="active-project-select" aria-label="Projeto ativo"></select>
+              </label>
+              <a class="secondary-action" href="../#equipe"
+                style="padding:2px 8px; font-size:0.72rem; text-decoration:none;">
+                Gerir no Nexo
+              </a>
             </div>
           </div>
           <div class="action-button-group">
@@ -262,10 +268,10 @@
             <button type="button" class="primary-action" id="btn-print-selected-shopping">
               🖨️ Imprimir Selecionados (<span id="selected-shopping-count">0</span>)
             </button>
-            <a href="/api/reports/shopping-list" target="_blank" class="secondary-action" style="text-decoration:none;">
+            <a href="/api/reports/shopping-list" id="shopping-report-link" target="_blank" class="secondary-action" style="text-decoration:none;">
               Imprimir Todos
             </a>
-            <a href="/api/data" target="_blank" class="secondary-action" style="text-decoration:none;">
+            <a href="/api/data" id="raw-data-link" target="_blank" class="secondary-action" style="text-decoration:none;">
               Exportar JSON
             </a>
           </div>
@@ -452,6 +458,12 @@
         <button type="button" class="dialog-close close-modal">&times;</button>
       </div>
       <div class="form-body">
+        <label>
+          Projeto cadastrado no Nexo
+          <select name="project_id" id="need-project-select" required>
+            <option value="">Selecione um projeto</option>
+          </select>
+        </label>
         <label>
           Título da Necessidade / Recurso
           <input type="text" name="title" id="need-title-input" required
@@ -662,7 +674,7 @@
     </form>
   </dialog>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=20260729-project-scope"></script>
 </body>
 
 </html>

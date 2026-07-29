@@ -377,6 +377,50 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             })
         return identity
 
+    def require_nexo_permission(
+        self, identity, permission, source_project_id
+    ):
+        if not source_project_id:
+            self.send_json(422, {
+                "status": "error",
+                "detail": "Selecione um projeto cadastrado no Nexo.",
+            })
+            return False
+        try:
+            decision = post_nexo(
+                "/api/v1/access/authorize",
+                {
+                    "source_project_id": source_project_id,
+                    "permission": permission,
+                },
+                identity,
+            )
+        except (
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+            TimeoutError,
+            json.JSONDecodeError,
+        ) as error:
+            self.send_json(503, {
+                "status": "error",
+                "detail": (
+                    "A autoridade de acesso do Nexo está indisponível; "
+                    f"o acesso foi negado por segurança: {error}"
+                ),
+            })
+            return False
+        if not decision.get("allowed", False):
+            self.send_json(403, {
+                "status": "error",
+                "detail": (
+                    "A identidade não possui atribuição local no projeto "
+                    "do Nexo para esta operação."
+                ),
+                "authorization": decision,
+            })
+            return False
+        return True
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -420,6 +464,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 "participant": "sister_compras",
                 "counterparty": "sister_nexo",
             })
+            return
+        trusted_nexo_projection = (
+            path == '/api/integration/data/need-summaries'
+            and self.headers.get("X-Sister-System", "").strip()
+            == "sister_nexo"
+        )
+        if not trusted_nexo_projection and path in {
+            '/api/integration/data/need-summaries',
+            '/api/data',
+            '/api/reports/shopping-list',
+        } and not self.require_nexo_permission(
+            identity, "procurement.view",
+            query.get("project_id", [None])[0],
+        ):
             return
         if path == '/api/integration/data/need-summaries':
             agreement = db_manager.get_integration_agreement()
@@ -489,6 +547,17 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                         "metadados do projeto não correspondem ao acordo ativo"
                     )
                 self.send_json(200, context)
+            except urllib.error.HTTPError as error:
+                try:
+                    detail = json.loads(
+                        error.read().decode("utf-8")
+                    ).get("error", str(error))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    detail = str(error)
+                self.send_json(error.code, {
+                    "status": "error",
+                    "detail": detail,
+                })
             except (
                 urllib.error.URLError, TimeoutError,
                 json.JSONDecodeError, ValueError
@@ -499,11 +568,28 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 })
             return
         if path == '/api/data':
+            project_id = query.get("project_id", [None])[0]
+            data = db_manager.load_data()
+            visible_need_ids = {
+                need["id"] for need in data.get("needs", [])
+                if need.get("project_id") == project_id
+            }
+            data["projects"] = [
+                project for project in data.get("projects", [])
+                if project.get("id") == project_id
+            ]
+            data["needs"] = [
+                need for need in data.get("needs", [])
+                if need.get("id") in visible_need_ids
+            ]
+            data["decisions"] = [
+                decision for decision in data.get("decisions", [])
+                if decision.get("need_id") in visible_need_ids
+            ]
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            data = db_manager.load_data()
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
             return
         elif path == '/api/ollama/models':
@@ -523,6 +609,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             data = db_manager.load_data()
+            project_id = query.get("project_id", [None])[0]
+            data["projects"] = [
+                project for project in data.get("projects", [])
+                if project.get("id") == project_id
+            ]
+            visible_need_ids = {
+                need["id"] for need in data.get("needs", [])
+                if need.get("project_id") == project_id
+            }
+            data["needs"] = [
+                need for need in data.get("needs", [])
+                if need.get("id") in visible_need_ids
+            ]
+            data["decisions"] = [
+                decision for decision in data.get("decisions", [])
+                if decision.get("need_id") in visible_need_ids
+            ]
             filter_ids = None
             if 'ids' in query and query['ids']:
                 filter_ids = [i.strip() for i in query['ids'][0].split(',') if i.strip()]
@@ -737,6 +840,27 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         data = db_manager.load_data()
+        if path == '/api/project/update':
+            self.send_json(403, {
+                "status": "error",
+                "detail": (
+                    "Projetos são cadastrados e alterados exclusivamente no Nexo."
+                ),
+            })
+            return
+
+        source_project_id = payload.get("project_id")
+        if not source_project_id:
+            need_id = payload.get("need_id")
+            source_project_id = next((
+                need.get("project_id")
+                for need in data.get("needs", [])
+                if need.get("id") == need_id
+            ), None)
+        if not self.require_nexo_permission(
+            identity, "procurement.manage", source_project_id
+        ):
+            return
 
         if self.path == '/api/needs':
             existing_nums = []
@@ -749,7 +873,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             new_id = f"NED-{next_num:03d}"
 
             payload['id'] = new_id
-            payload['project_id'] = data['projects'][0]['id'] if data.get('projects') else 'PROJ-PESQUISA-01'
+            payload['project_id'] = source_project_id
+            if not any(
+                project.get("id") == source_project_id
+                for project in data.get("projects", [])
+            ):
+                data.setdefault("projects", []).append({
+                    "id": source_project_id,
+                    "name": payload.pop(
+                        "project_name", source_project_id
+                    ),
+                    "description": (
+                        "Referência de projeto sob autoridade do SisTer Nexo."
+                    ),
+                    "lead_researcher": identity["name"],
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-12-31",
+                })
             payload['status'] = 'Especificada'
             if 'estimated_budget' not in payload:
                 payload['estimated_budget'] = 0.0

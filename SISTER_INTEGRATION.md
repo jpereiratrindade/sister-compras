@@ -13,9 +13,15 @@ Este repositório integra-se ao SisTer Nexo com o nome de produto
 
 ## Fronteira
 
-O Nexo será autoridade para projetos e atividades. O Compras continuará
+O Nexo é a autoridade para projetos e atividades. O Compras continua
 autoridade para necessidades, requisitos, alternativas, cotações, decisões
 humanas e atendimento, com banco e credenciais próprios.
+
+Novos projetos são cadastrados exclusivamente pela interface/API do Nexo. Ao
+criar uma necessidade, o Compras exige a seleção de um projeto autorizado
+recebido por `nexo-project-context/1.0.0`; não existe mais escolha silenciosa do
+primeiro projeto. O registro local guarda somente a referência necessária à
+chave estrangeira e à operação do domínio de compras.
 
 Nenhuma integração pode compartilhar tabelas ou assumir que um identificador
 local existe no outro banco. O intercâmbio deverá usar contrato versionado,
@@ -29,6 +35,30 @@ identidade autenticada, proveniência e referências estáveis.
 - contrato `nexo-compras.integration/1.0.0`;
 - identidade recebida pelos cabeçalhos `X-Sister-*` encaminhados pelo Nexo;
 - contexto de projetos consultado pela API do Nexo.
+
+## Autorização por projeto
+
+O perfil global entregue pelo SisTer é contexto de identidade, não autorização
+automática. Antes de expor dados ou executar uma operação de compras, o Compras
+solicita ao Nexo uma decisão para:
+
+- a identidade federada corrente;
+- `PROJ-RESILIENCIA`, referência canônica sob autoridade do Nexo;
+- a permissão `procurement.view` ou `procurement.manage`.
+
+O identificador histórico `PROJ-PESQUISA-01` permanece somente como alias
+contratual para rastreabilidade; os registros existentes são migrados para a
+referência canônica sem recriar ou apagar dados.
+
+O Nexo exige vínculo externo ativo e atribuição local da identidade no projeto.
+Membros e auditores podem visualizar; somente coordenação do projeto ou
+administração local do Nexo pode alterar o domínio de compras. Curadores de
+informação processam a projeção no Nexo, sem receber por isso autoridade para
+alterar registros no Compras.
+
+Falha de comunicação com a autoridade resulta em negação por segurança. A
+consulta interna Nexo → Compras usada para construir a projeção informacional
+é marcada como chamada contratada já autorizada, evitando um ciclo síncrono.
 
 ## Aperto de mãos bilateral
 

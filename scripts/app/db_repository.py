@@ -393,7 +393,7 @@ class DatabaseManager:
                 pass
         return {
             "version": "0.4.0",
-            "projects": [{"id": "PROJ-PESQUISA-01", "name": "Projeto de Pesquisa e Desenvolvimento Tecnológico", "lead_researcher": "Pesquisador Responsável"}],
+            "projects": [{"id": "PROJ-RESILIENCIA", "name": "Projeto Resiliência", "lead_researcher": "Pesquisador Responsável"}],
             "needs": [],
             "decisions": []
         }
@@ -424,6 +424,7 @@ class DatabaseManager:
                                 INSERT INTO needs (id, project_id, title, category, quantity, priority, status, responsible, estimated_budget, description, research_activity_id, activity_id)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (id) DO UPDATE SET
+                                    project_id = EXCLUDED.project_id,
                                     title = EXCLUDED.title,
                                     category = EXCLUDED.category,
                                     quantity = EXCLUDED.quantity,
@@ -435,7 +436,7 @@ class DatabaseManager:
                                     research_activity_id = EXCLUDED.research_activity_id,
                                     activity_id = EXCLUDED.activity_id;
                             """, (
-                                need.get("id"), need.get("project_id", "PROJ-PESQUISA-01"),
+                                need.get("id"), need.get("project_id", "PROJ-RESILIENCIA"),
                                 need.get("title"), need.get("category"), need.get("quantity", 1),
                                 need.get("priority", "Essencial"), need.get("status", "Especificada"),
                                 need.get("responsible", "Equipe de Pesquisa"), float(need.get("estimated_budget", 0.0)),
