@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentData = null;
   let lastAiAnalysisText = '';
+  let lastAnalyzedNeedId = '';
 
   // Tab switching
   tabs.forEach(button => {
@@ -80,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function populateNeedSelects() {
+  function populateNeedSelects(targetNeedId = null) {
     const selAlt = document.getElementById('select-need-for-alt');
     const selDec = document.getElementById('select-need-for-dec');
     if (!selAlt || !selDec || !currentData || !currentData.needs) return;
@@ -92,17 +93,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const opt1 = document.createElement('option');
       opt1.value = need.id;
       opt1.textContent = `${need.id} - ${need.title}`;
+      if (targetNeedId && need.id === targetNeedId) opt1.selected = true;
       selAlt.appendChild(opt1);
 
       const opt2 = document.createElement('option');
       opt2.value = need.id;
       opt2.textContent = `${need.id} - ${need.title}`;
+      if (targetNeedId && need.id === targetNeedId) opt2.selected = true;
       selDec.appendChild(opt2);
     });
   }
 
   // Trigger AI Analysis
   window.triggerAiAnalysis = async function(needId) {
+    lastAnalyzedNeedId = needId;
     const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
     document.getElementById('ai-modal-title').textContent = `Análise Técnica com ${model}`;
     document.getElementById('ai-loading').style.display = 'block';
@@ -136,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (textJustification && lastAiAnalysisText) {
         textJustification.value = lastAiAnalysisText;
         modalAi.close();
-        populateNeedSelects();
+        populateNeedSelects(lastAnalyzedNeedId);
         modalDecision.showModal();
       }
     });
