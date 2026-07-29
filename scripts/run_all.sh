@@ -18,6 +18,19 @@ echo ""
 
 cd "${ROOT_DIR}"
 
+# Garantir container PostgreSQL dedicado 'sister-compras-db' na porta 55435
+if command -v podman >/dev/null 2>&1; then
+    if ! podman ps --format "{{.Names}}" | grep -q "^sister-compras-db$"; then
+        echo "[+] Garantindo banco de dados PostgreSQL independente (sister-compras-db:55435)..."
+        podman start sister-compras-db 2>/dev/null || podman run -d --name sister-compras-db -e POSTGRES_DB=sister_compras -e POSTGRES_USER=sister -e POSTGRES_PASSWORD=sister -p 127.0.0.1:55435:5432 docker.io/library/postgres:17-alpine || true
+    fi
+elif command -v docker >/dev/null 2>&1; then
+    if ! docker ps --format "{{.Names}}" | grep -q "^sister-compras-db$"; then
+        echo "[+] Garantindo banco de dados PostgreSQL independente (sister-compras-db:55435)..."
+        docker start sister-compras-db 2>/dev/null || docker run -d --name sister-compras-db -e POSTGRES_DB=sister_compras -e POSTGRES_USER=sister -e POSTGRES_PASSWORD=sister -p 127.0.0.1:55435:5432 postgres:17-alpine || true
+    fi
+fi
+
 # 1. Configurar build CMake
 echo "[1/5] Configurando build CMake..."
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
