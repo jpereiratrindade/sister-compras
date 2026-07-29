@@ -147,22 +147,66 @@
       </section>
 
       <section class="tab-content view" id="tab-needs">
-        <div class="page-heading">
+        <div class="page-heading" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px;">
           <div>
             <span class="eyebrow">Evolução do Projeto</span>
             <h2>Lista Completa de Necessidades</h2>
+            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--muted);">Gerenciamento tabular avançado, busca e exportação de recursos de pesquisa.</p>
+          </div>
+          <div class="action-button-group" style="display:flex; gap:8px;">
+            <button type="button" class="primary-action" id="btn-open-need-modal-2">
+              + Nova Necessidade
+            </button>
+            <button type="button" class="secondary-action" id="btn-export-needs-csv">
+              📊 Exportar CSV
+            </button>
           </div>
         </div>
+
+        <!-- Barra de Filtros Avançados -->
+        <div class="table-toolbar" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; background:#f8fafc; padding:12px 16px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:16px;">
+          <div class="search-field" style="flex:1; min-width:240px; position:relative;">
+            <input type="search" id="tab-needs-search" placeholder="🔍 Buscar por código, título ou descrição..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.83rem;">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="filter-need-category" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; background:#fff;">
+              <option value="">Todas as Categorias</option>
+              <option value="Energia & Infraestrutura">Energia & Infraestrutura</option>
+              <option value="Equipamentos Científicos">Equipamentos Científicos</option>
+              <option value="Componentes Eletrônicos">Componentes Eletrônicos</option>
+              <option value="Consumo & Reativos">Consumo & Reativos</option>
+              <option value="Serviços & Licenças">Serviços & Licenças</option>
+            </select>
+            <select id="filter-need-priority" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; background:#fff;">
+              <option value="">Todas as Prioridades</option>
+              <option value="Essencial">Essencial</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+            <select id="filter-need-status" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; background:#fff;">
+              <option value="">Todos os Status</option>
+              <option value="Especificada">Especificada</option>
+              <option value="Decidida">Decidida</option>
+              <option value="Adquirida">Adquirida</option>
+              <option value="Entregue">Entregue</option>
+            </select>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Código</th>
-                <th>Necessidade</th>
+                <th>Necessidade / Especificação</th>
                 <th>Categoria</th>
                 <th>Qtd</th>
+                <th>Orçamento Est. (R$)</th>
                 <th>Prioridade</th>
                 <th>Status</th>
+                <th>Responsável</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="needs-table-body"></tbody>

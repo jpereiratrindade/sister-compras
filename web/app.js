@@ -13,13 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalChat = document.getElementById('modal-ai-chat');
 
   const btnOpenNeed = document.getElementById('btn-open-need-modal');
+  const btnOpenNeed2 = document.getElementById('btn-open-need-modal-2');
   const btnOpenAlt = document.getElementById('btn-open-alt-modal');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
   const btnOpenChat = document.getElementById('btn-open-chat-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
   const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
   const btnPrintSelected = document.getElementById('btn-print-selected-shopping');
+  const btnExportCsv = document.getElementById('btn-export-needs-csv');
   const checkAllShopping = document.getElementById('check-all-shopping');
+
+  // Controles de Filtro da Tabela de Necessidades
+  const tabNeedsSearch = document.getElementById('tab-needs-search');
+  const filterCategory = document.getElementById('filter-need-category');
+  const filterPriority = document.getElementById('filter-need-priority');
+  const filterStatus = document.getElementById('filter-need-status');
 
   const formNeed = document.getElementById('form-need');
   const formEditNeed = document.getElementById('form-edit-need');
@@ -51,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modal controls
   if (btnOpenNeed) btnOpenNeed.addEventListener('click', () => modalNeed.showModal());
+  if (btnOpenNeed2) btnOpenNeed2.addEventListener('click', () => modalNeed.showModal());
   if (btnOpenAlt) btnOpenAlt.addEventListener('click', () => {
     populateNeedSelects();
     modalAlternative.showModal();
@@ -66,6 +75,50 @@ document.addEventListener('DOMContentLoaded', () => {
       const dialog = e.target.closest('dialog');
       if (dialog) dialog.close();
     });
+  });
+
+  // Exportar Necessidades para CSV
+  if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+      if (!currentData || !currentData.needs || currentData.needs.length === 0) {
+        alert('Nenhuma necessidade disponível para exportação.');
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Código,Título/Necessidade,Categoria,Quantidade,Prioridade,Status,Orçamento Estimado (R$),Responsável,Descrição Técnica\n";
+
+      currentData.needs.forEach(n => {
+        const title = `"${(n.title || '').replace(/"/g, '""')}"`;
+        const cat = `"${(n.category || '').replace(/"/g, '""')}"`;
+        const prio = `"${(n.priority || '').replace(/"/g, '""')}"`;
+        const st = `"${(n.status || '').replace(/"/g, '""')}"`;
+        const resp = `"${(n.responsible || '').replace(/"/g, '""')}"`;
+        const desc = `"${(n.description || '').replace(/"/g, '""')}"`;
+        const estBudget = (n.estimated_budget || 0).toFixed(2);
+
+        csvContent += `${n.id},${title},${cat},${n.quantity || 1},${prio},${st},${estBudget},${resp},${desc}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `necessidades_sister_compras_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
+  // Bind filter change listeners
+  [tabNeedsSearch, filterCategory, filterPriority, filterStatus].forEach(el => {
+    if (el) {
+      el.addEventListener('input', () => {
+        if (currentData) renderNeedsTable(currentData.needs || []);
+      });
+      el.addEventListener('change', () => {
+        if (currentData) renderNeedsTable(currentData.needs || []);
+      });
+    }
   });
 
   // Load Ollama Models
@@ -658,6 +711,58 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function renderNeedsTable(needs) {
+    const tableBody = document.getElementById('needs-table-body');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+
+    const query = tabNeedsSearch ? tabNeedsSearch.value.trim().toLowerCase() : '';
+    const catVal = filterCategory ? filterCategory.value : '';
+    const prioVal = filterPriority ? filterPriority.value : '';
+    const stVal = filterStatus ? filterStatus.value : '';
+
+    const filtered = needs.filter(need => {
+      if (catVal && need.category !== catVal) return false;
+      if (prioVal && need.priority !== prioVal) return false;
+      if (stVal && need.status !== stVal) return false;
+      if (query) {
+        const fullText = `${need.id} ${need.title} ${need.category} ${need.responsible} ${need.description || ''}`.toLowerCase();
+        if (!fullText.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">*Nenhuma necessidade encontrada para os filtros selecionados.*</td></tr>';
+      return;
+    }
+
+    filtered.forEach(need => {
+      const row = document.createElement('tr');
+      const estBudgetStr = need.estimated_budget && need.estimated_budget > 0 ? `R$ ${need.estimated_budget.toFixed(2)}` : 'R$ 0,00';
+
+      row.innerHTML = `
+        <td><strong>${need.id}</strong></td>
+        <td>
+          <div style="font-weight:bold; color:var(--navy);">${need.title}</div>
+          ${need.description ? `<small style="color:var(--muted); display:block; font-size:0.75rem;">${need.description}</small>` : ''}
+        </td>
+        <td>${need.category}</td>
+        <td>${need.quantity}</td>
+        <td><strong>${estBudgetStr}</strong></td>
+        <td><span class="status-pill degraded">${need.priority}</span></td>
+        <td><span class="status-pill healthy">${need.status}</span></td>
+        <td><small style="color:var(--muted);">${need.responsible}</small></td>
+        <td style="white-space:nowrap;">
+          <button type="button" class="ai-button" style="padding:3px 7px; font-size:0.7rem;" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ IA</button>
+          <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
+          <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
   function renderData(data) {
     const project = data.projects && data.projects[0];
     if (project) {
@@ -735,25 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
       container.appendChild(card);
     });
 
-    // Render Table
-    const tableBody = document.getElementById('needs-table-body');
-    tableBody.innerHTML = '';
-    needs.forEach(need => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td><strong>${need.id}</strong></td>
-        <td>${need.title}</td>
-        <td>${need.category}</td>
-        <td>${need.quantity}</td>
-        <td><span class="status-pill degraded">${need.priority}</span></td>
-        <td><span class="status-pill healthy">${need.status}</span></td>
-        <td>
-          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
-          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
+    // Render Needs Table with Filters
+    renderNeedsTable(needs);
 
     // Render Decisions Timeline
     const timeline = document.getElementById('decisions-timeline');
