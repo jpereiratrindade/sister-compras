@@ -604,11 +604,13 @@ document.addEventListener('DOMContentLoaded', () => {
         alternativesHtml += '</ul></div>';
       }
 
+      const estBudgetCard = need.estimated_budget && need.estimated_budget > 0 ? ` · <strong>Orçamento Est.:</strong> R$ ${need.estimated_budget.toFixed(2)}` : '';
+
       card.innerHTML = `
         <div class="system-card-head">
           <div>
             <h4>${need.title}</h4>
-            <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}</p>
+            <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}${estBudgetCard}</p>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
@@ -673,6 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let supplier = 'N/A';
       let subtotal = 0.0;
       let altTitle = 'Aguardando Parecer';
+      let isEstimated = false;
 
       if (dec && need.alternatives) {
         const alt = need.alternatives.find(a => a.id === dec.selected_alternative_id);
@@ -684,7 +687,14 @@ document.addEventListener('DOMContentLoaded', () => {
             totalBudget += subtotal;
           }
         }
+      } else if (need.estimated_budget && need.estimated_budget > 0) {
+        subtotal = need.estimated_budget * need.quantity;
+        totalBudget += subtotal;
+        isEstimated = true;
       }
+
+      const priceDisplay = isEstimated ? `R$ ${need.estimated_budget.toFixed(2)} <small style="color:var(--muted);">(Estimado)</small>` : `R$ ${(subtotal / (need.quantity || 1)).toFixed(2)}`;
+      const subtotalDisplay = isEstimated ? `R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} <small style="color:var(--muted);">(Estimado)</small>` : `R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -694,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${need.category}</td>
         <td>${supplier}</td>
         <td>${need.quantity}</td>
-        <td><strong>R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></td>
+        <td><strong>${subtotalDisplay}</strong></td>
         <td><span class="status-pill ${need.status === 'Entregue' ? 'healthy' : (need.status === 'Adquirida' ? 'healthy' : 'degraded')}">${need.status}</span></td>
         <td>
           <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="updateNeedStatus('${need.id}', 'Adquirida')">Marcar Adquirida</button>

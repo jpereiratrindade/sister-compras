@@ -159,11 +159,12 @@ def generate_print_html(data, filter_ids=None):
     
     for need in needs:
         dec = decisions.get(need['id'])
-        alt_title = "Pendente"
+        alt_title = "Aguardando Parecer"
         supplier = "N/A"
         price_str = "R$ 0,00"
         subtotal_str = "R$ 0,00"
         
+        has_decision = False
         if dec and need.get('alternatives'):
             for alt in need['alternatives']:
                 if alt['id'] == dec.get('selected_alternative_id'):
@@ -175,8 +176,16 @@ def generate_print_html(data, filter_ids=None):
                         total_budget += subtotal
                         price_str = f"R$ {unit_p:,.2f}"
                         subtotal_str = f"R$ {subtotal:,.2f}"
+                        has_decision = True
                     break
-        
+
+        if not has_decision and need.get('estimated_budget', 0.0) > 0:
+            est_p = float(need.get('estimated_budget', 0.0))
+            subtotal = est_p * need.get('quantity', 1)
+            total_budget += subtotal
+            price_str = f"R$ {est_p:,.2f} <small style='color:#777'>(Estimado)</small>"
+            subtotal_str = f"R$ {subtotal:,.2f} <small style='color:#777'>(Estimado)</small>"
+
         items_rows += f"""
         <tr>
             <td><strong>{need.get('id')}</strong></td>
