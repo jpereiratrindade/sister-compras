@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Chat Conversacional & Extração de Intenção com Confirmação Humana
+  // Chat Conversacional & Extração de Intenção com Confirmação Humana e RAG
   if (formChatSend) {
     formChatSend.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       chatInput.value = '';
-      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--blue); margin-top:8px;">Interpretando intenção com qwen2.5:14b...</div>';
+      proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--blue); margin-top:8px;">Consultando banco de dados (RAG) e analisando intenção...</div>';
 
       try {
         const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
@@ -194,6 +194,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = proposal.params || {};
     const explanation = proposal.explanation || 'Proposta de Ação';
 
+    // Tratar pedido de esclarecimento (ask_clarification)
+    if (action === 'ask_clarification') {
+      const askDiv = document.createElement('div');
+      askDiv.style.background = '#fff8e6';
+      askDiv.style.border = '1px solid #ffd591';
+      askDiv.style.padding = '10px 12px';
+      askDiv.style.borderRadius = '8px';
+      askDiv.style.fontSize = '0.84rem';
+      askDiv.innerHTML = `<strong>Assistente IA:</strong> ${explanation}`;
+      chatMessages.appendChild(askDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return;
+    }
+
     let actionLabel = 'Cadastrar Nova Necessidade';
     let detailsHtml = '';
 
@@ -222,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     card.className = 'proposal-card';
     card.innerHTML = `
       <div class="proposal-card-head">
-        <strong>⚡ PROPOSTA DE AÇÃO DA IA: ${actionLabel}</strong>
+        <strong>⚡ PROPOSTA DE AÇÃO DA IA (RAG Mapeado): ${actionLabel}</strong>
       </div>
       <p style="font-size:0.78rem; color:var(--muted); margin-bottom:6px;">${explanation}</p>
       <div class="proposal-card-body">

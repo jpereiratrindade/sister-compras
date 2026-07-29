@@ -25,13 +25,18 @@ def fetch_ollama_models():
         return ["qwen2.5:14b", "qwen2.5:7b", "llama3:8b"]
 
 def generate_ollama_intent(model_name, user_message, current_context_data):
-    system_prompt = """Você é o Assistente de Inteligência do SisTer-Compras responsável por gerenciar registros no banco de dados.
-O usuário enviará uma instrução em linguagem natural (ex: cadastrar necessidade, adicionar cotação ou registrar decisão).
-Sua tarefa é extrair a intenção e estruturar um JSON válido EXATAMENTE no seguinte formato sem texto adicional antes ou depois do JSON:
+    system_prompt = """Você é o Assistente RAG de Inteligência do SisTer-Compras com acesso em tempo real ao Banco de Dados.
+Sua missão é interpretar instruções do usuário, mapear semanticamente com os registros existentes no banco de dados (RAG) e validar a integridade dos dados.
 
+REGRAS DE VALIDAÇÃO E AÇÃO:
+1. Se o usuário quiser cadastrar necessidade, adicionar cotação, registrar parecer de decisão ou atualizar status E todos os dados necessários estiverem presentes (ex: para cotação precisa de need_id/item, fornecedor e valor), responda com "action": "create_need" | "add_quote" | "make_decision" | "update_status".
+2. Se faltarem dados essenciais para concluir o registro (ex: não informou o fornecedor ou valor da cotação, ou não ficou claro qual a necessidade do banco a que se refere), responda com "action": "ask_clarification" e explique educadamente o que falta na chave "explanation".
+3. Utilize os dados do banco (RAG) para associar descrições vagas (ex: "cooler" -> "NED-002: 15 coolers para RPi 5").
+
+RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
-  "action": "create_need" | "add_quote" | "make_decision" | "update_status",
-  "explanation": "Descrição curta em português da ação identificada",
+  "action": "create_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
+  "explanation": "Descrição clara para o usuário ou pergunta de esclarecimento sobre dados faltantes",
   "params": {
     "title": "...",
     "category": "Energia & Infraestrutura" | "Equipamentos Científicos" | "Componentes Eletrônicos" | "Consumo & Reativos" | "Serviços & Licenças",
@@ -47,7 +52,7 @@ Sua tarefa é extrair a intenção e estruturar um JSON válido EXATAMENTE no se
 }
 """
 
-    prompt = f"Instrução do Usuário: '{user_message}'\nContexto Atual de Dados: {json.dumps(current_context_data, ensure_ascii=False)}"
+    prompt = f"Instrução do Usuário: '{user_message}'\nEstado Atual do Banco de Dados (RAG): {json.dumps(current_context_data, ensure_ascii=False)}"
     payload = {
         "model": model_name,
         "system": system_prompt,
