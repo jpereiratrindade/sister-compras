@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <fstream>
 #include "sister_compras/App.hpp"
 #include "sister_compras/repository/JsonRepository.hpp"
 
@@ -10,7 +11,22 @@ using namespace sister_compras::repository;
 void runDemo(App& app) {
     std::cout << "=== Inicializando Demonstraçao do SisTer-Compras (Subsistema Autonomo) ===\n\n";
 
-    // 1. Criar projeto de pesquisa generico
+    JsonRepository repo("storage/compras_data.json");
+    std::vector<Project> loadedProjects;
+    std::vector<Need> loadedNeeds;
+    std::vector<Decision> loadedDecisions;
+
+    bool hasExistingData = repo.load(loadedProjects, loadedNeeds, loadedDecisions) && !loadedNeeds.empty();
+
+    if (hasExistingData) {
+        std::cout << "[+] Base de dados existente carregada com " << loadedNeeds.size() << " necessidade(s).\n\n";
+        for (const auto& p : loadedProjects) app.service().addProject(p);
+        for (const auto& n : loadedNeeds) app.service().addNeed(n);
+        for (const auto& d : loadedDecisions) app.service().recordDecision(d);
+        return;
+    }
+
+    // 1. Criar projeto de pesquisa generico se o banco estiver vazio
     Project proj;
     proj.id = "PROJ-PESQUISA-01";
     proj.name = "Projeto de Pesquisa e Desenvolvimento Tecnologico";
@@ -103,7 +119,6 @@ void runDemo(App& app) {
     std::cout << "[+] Decisao registrada com sucesso para a necessidade " << need.id << ".\n\n";
 
     // 6. Salvar Estado em arquivo JSON
-    JsonRepository repo("storage/compras_data.json");
     std::vector<Decision> decisions;
     auto decOpt = app.service().getDecisionForNeed(need.id);
     if (decOpt) decisions.push_back(*decOpt);

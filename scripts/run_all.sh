@@ -35,9 +35,15 @@ echo "[4/5] Validando regras de governança e contratos de ferramentas..."
 python3 scripts/validate_governance_repo.py
 python3 scripts/validate_tool_contracts.py
 
-# 5. Executar demonstração CLI e salvar estado
-echo "[5/5] Executando demonstração de domínio e garantindo banco/persistência..."
-./build/sister_compras demo
+# 5. Executar demonstração CLI e salvar estado APENAS se o banco/arquivo de armazenamento não existir
+echo "[5/5] Verificando persistência do banco de dados..."
+STORAGE_FILE="storage/compras_data.json"
+if [ ! -f "${STORAGE_FILE}" ]; then
+    echo "[+] Banco/Armazenamento novo. Executando demonstração de domínio para criar dados iniciais..."
+    ./build/sister_compras demo
+else
+    echo "[+] Base de dados existente preservada com sucesso em '${STORAGE_FILE}' (ignorado re-seeding para proteger registros do usuário)."
+fi
 
 # Liberar porta se houver processo anterior travado
 if command -v fuser >/dev/null 2>&1; then
