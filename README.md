@@ -2,6 +2,23 @@
 
 **SisTer-Compras** é um subsistema federado autônomo do ecossistema **SisTer** desenvolvido em **C++20** e **Python/REST** para governança de necessidades, especificação de requisitos, cotações, evidências de proveniência, suporte à decisão técnica supervisionada por IA conversacional e gestão do ciclo de vida de aquisições em projetos de pesquisa.
 
+## Evolução proposta: Nexo-Compras
+
+O SisTer Nexo passa a ser a autoridade para projetos, ações e atividades de
+pesquisa. Este produto é candidato a integrar-se como contexto especializado,
+recebendo referências dessas atividades e devolvendo estados resumidos de
+necessidades, decisões e atendimento.
+
+**Nexo-Compras** é um nome em avaliação, não uma renomeação já executada.
+Compras continuará com processo, banco, contratos e regras próprios. A proposta,
+os dados compartilháveis e os impedimentos estão na
+[ADR-005](adr/ADR-005-nexo-compras-federated-boundary.md) e em
+[SISTER_INTEGRATION.md](SISTER_INTEGRATION.md).
+
+Antes da integração operacional será necessário corrigir a colisão da porta
+PostgreSQL `55435`, alinhar o contrato à aplicação `0.4.0`, remover credenciais
+padrão versionadas e implementar identidade federada e saúde sanitizada.
+
 ```text
 projetos e subsistemas do SisTer
               ↓

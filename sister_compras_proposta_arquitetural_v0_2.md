@@ -1,5 +1,10 @@
 # SisTer-Compras — proposta inicial de assistente de recursos e aquisições para projetos de pesquisa
 
+> Atualização de direção em 2026-07-29: o produto é candidato a integrar-se ao
+> SisTer Nexo e pode adotar a identidade **Nexo-Compras**. A proposta original
+> permanece como histórico; a fronteira vigente está em
+> `adr/ADR-005-nexo-compras-federated-boundary.md`.
+
 **Versão:** 0.2  
 **Data:** 29 de julho de 2026  
 **Status:** Proposta para discussão técnica  

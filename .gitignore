@@ -13,3 +13,6 @@ compile_commands.json
 *.dll
 *.exe
 *.log
+__pycache__/
+*.py[cod]
+storage/compras_data.json

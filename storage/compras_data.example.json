@@ -1,0 +1,30 @@
+{
+  "version": "0.4.0",
+  "projects": [
+    {
+      "id": "PROJ-EXEMPLO-01",
+      "name": "Projeto de Pesquisa Exemplo",
+      "description": "Dados demonstrativos sem conteúdo operacional.",
+      "lead_researcher": "Pesquisador Responsável",
+      "start_date": "2026-01-01",
+      "end_date": "2026-12-31"
+    }
+  ],
+  "needs": [
+    {
+      "id": "NED-EXEMPLO-001",
+      "project_id": "PROJ-EXEMPLO-01",
+      "title": "Recurso demonstrativo",
+      "category": "Infraestrutura",
+      "quantity": 1,
+      "priority": "Media",
+      "status": "Rascunho",
+      "responsible": "Equipe de Pesquisa",
+      "estimated_budget": 0.0,
+      "description": "Exemplo para desenvolvimento; não representa demanda real.",
+      "requirements": [],
+      "alternatives": []
+    }
+  ],
+  "decisions": []
+}

@@ -27,6 +27,7 @@ REQUIRED_DIRS = [
 
 REQUIRED_FILES = [
     "README.md",
+    "SISTER_INTEGRATION.md",
     "CMakeLists.txt",
     ".clang-format",
     ".clang-tidy",
@@ -39,6 +40,8 @@ REQUIRED_FILES = [
     "policies/evidence_and_audit_policy.md",
     "prompts/governance_task_packet.md",
     "examples/evidence_log.json",
+    "adr/ADR-005-nexo-compras-federated-boundary.md",
+    "storage/compras_data.example.json",
     "scripts/validate_tool_contracts.py",
     "scripts/run_quality.sh",
     ".github/workflows/ci.yml",
