@@ -1722,6 +1722,57 @@ tr:last-child td {
    Modais & Diálogos de Formulário Interativo
    ========================================================================== */
 
+.action-but.top-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ollama-selector-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: rgba(218, 234, 248, 0.85);
+}
+
+.ollama-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.ollama-select option {
+  background: var(--navy-dark);
+  color: #ffffff;
+}
+
+.ai-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(28, 155, 152, 0.12);
+  border: 1px solid var(--teal);
+  color: var(--teal);
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.ai-button:hover {
+  background: var(--teal);
+  color: #ffffff;
+}
+
 .action-button-group {
   display: flex;
   align-items: center;

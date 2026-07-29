@@ -8,16 +8,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalNeed = document.getElementById('modal-need');
   const modalAlternative = document.getElementById('modal-alternative');
   const modalDecision = document.getElementById('modal-decision');
+  const modalAi = document.getElementById('modal-ai-analysis');
 
   const btnOpenNeed = document.getElementById('btn-open-need-modal');
   const btnOpenAlt = document.getElementById('btn-open-alt-modal');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
+  const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
 
   const formNeed = document.getElementById('form-need');
   const formAlt = document.getElementById('form-alternative');
   const formDec = document.getElementById('form-decision');
 
+  const selectOllama = document.getElementById('select-ollama-model');
+
   let currentData = null;
+  let lastAiAnalysisText = '';
 
   // Tab switching
   tabs.forEach(button => {
@@ -52,6 +57,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Load Ollama Models
+  async function loadOllamaModels() {
+    if (!selectOllama) return;
+    try {
+      const res = await fetch('/api/ollama/models');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.models && data.models.length > 0) {
+          selectOllama.innerHTML = '';
+          data.models.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model;
+            opt.textContent = model + (model === 'qwen2.5:14b' ? ' (Recomendado)' : '');
+            if (model === 'qwen2.5:14b') opt.selected = true;
+            selectOllama.appendChild(opt);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Ollama local offline ou não disponível:', err);
+    }
+  }
+
   function populateNeedSelects() {
     const selAlt = document.getElementById('select-need-for-alt');
     const selDec = document.getElementById('select-need-for-dec');
@@ -70,6 +98,47 @@ document.addEventListener('DOMContentLoaded', () => {
       opt2.value = need.id;
       opt2.textContent = `${need.id} - ${need.title}`;
       selDec.appendChild(opt2);
+    });
+  }
+
+  // Trigger AI Analysis
+  window.triggerAiAnalysis = async function(needId) {
+    const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
+    document.getElementById('ai-modal-title').textContent = `Análise Técnica com ${model}`;
+    document.getElementById('ai-loading').style.display = 'block';
+    document.getElementById('ai-content-box').textContent = '';
+    modalAi.showModal();
+
+    try {
+      const res = await fetch('/api/ollama/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ need_id: needId, model: model })
+      });
+      document.getElementById('ai-loading').style.display = 'none';
+      if (res.ok) {
+        const result = await res.json();
+        lastAiAnalysisText = result.analysis || 'Sem resposta.';
+        document.getElementById('ai-content-box').textContent = lastAiAnalysisText;
+      } else {
+        document.getElementById('ai-content-box').textContent = 'Erro ao consultar o Ollama. Verifique se o modelo está baixado.';
+      }
+    } catch (err) {
+      document.getElementById('ai-loading').style.display = 'none';
+      document.getElementById('ai-content-box').textContent = `Falha na requisição ao Ollama: ${err.message}`;
+    }
+  };
+
+  // Copy AI Suggestion to Decision Form
+  if (btnCopyAi) {
+    btnCopyAi.addEventListener('click', () => {
+      const textJustification = document.getElementById('text-justification');
+      if (textJustification && lastAiAnalysisText) {
+        textJustification.value = lastAiAnalysisText;
+        modalAi.close();
+        populateNeedSelects();
+        modalDecision.showModal();
+      }
     });
   }
 
@@ -253,7 +322,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>${need.title}</h4>
             <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}</p>
           </div>
-          <span class="status-pill ${need.status === 'Decidida' ? 'healthy' : 'degraded'}">${need.status}</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
+            <span class="status-pill ${need.status === 'Decidida' ? 'healthy' : 'degraded'}">${need.status}</span>
+          </div>
         </div>
         <div class="system-card-meta">
           <span>Quantidade: ${need.quantity} | Prioridade: ${need.priority}</span>
@@ -314,5 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  loadOllamaModels();
   loadDashboardData();
 });

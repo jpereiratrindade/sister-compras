@@ -31,6 +31,7 @@ add_library(sister_compras_core
     src/App.cpp
     src/PurchasingService.cpp
     src/JsonRepository.cpp
+    src/AiPromptBuilder.cpp
 )
 target_include_directories(sister_compras_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 configure_project_target(sister_compras_core)

@@ -25,6 +25,12 @@
         </div>
 
         <div class="top-context">
+          <label class="ollama-selector-label" title="Modelo LLM local via Ollama">
+            <span>Ollama:</span>
+            <select id="select-ollama-model" class="ollama-select">
+              <option value="qwen2.5:14b">qwen2.5:14b (Padrão)</option>
+            </select>
+          </label>
           <span class="context-pill">Integração por Contrato</span>
           <span class="user-avatar">SC</span>
         </div>
@@ -153,7 +159,7 @@
       <form id="form-need" method="dialog">
         <div class="dialog-head">
           <h3>Nova Necessidade de Pesquisa</h3>
-          <button type="button" class="dialog-close" class="close-modal">&times;</button>
+          <button type="button" class="dialog-close close-modal">&times;</button>
         </div>
         <div class="form-body">
           <label>
@@ -203,7 +209,7 @@
       <form id="form-alternative" method="dialog">
         <div class="dialog-head">
           <h3>Adicionar Cotação / Alternativa</h3>
-          <button type="button" class="dialog-close" class="close-modal">&times;</button>
+          <button type="button" class="dialog-close close-modal">&times;</button>
         </div>
         <div class="form-body">
           <label>
@@ -240,7 +246,7 @@
       <form id="form-decision" method="dialog">
         <div class="dialog-head">
           <h3>Registrar Parecer Técnico de Decisão</h3>
-          <button type="button" class="dialog-close" class="close-modal">&times;</button>
+          <button type="button" class="dialog-close close-modal">&times;</button>
         </div>
         <div class="form-body">
           <label>
@@ -253,7 +259,7 @@
           </label>
           <label>
             Justificativa Técnica do Pesquisador
-            <textarea name="technical_justification" rows="3" required placeholder="Explique por que esta alternativa atende aos requisitos do projeto..."></textarea>
+            <textarea name="technical_justification" id="text-justification" rows="3" required placeholder="Explique por que esta alternativa atende aos requisitos do projeto..."></textarea>
           </label>
           <label>
             Pesquisador Responsável pela Decisão
@@ -265,6 +271,28 @@
           <button type="submit" class="primary-action">Aprovar e Formalizar Decisão</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Modal de Análise do Assistente IA (Ollama) -->
+    <dialog id="modal-ai-analysis" class="system-dialog" style="width: min(720px, 94vw);">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow" style="color:var(--teal);">ASSISTENTE IA LOCAL (OLLAMA)</span>
+          <h3 id="ai-modal-title">Análise Técnica com qwen2.5:14b</h3>
+        </div>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <div id="ai-loading" style="display:none; text-align:center; padding:20px; color:var(--blue);">
+          <strong>Consultando modelo local via Ollama... Aguarde.</strong>
+        </div>
+        <div id="ai-content-box" style="background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:16px; font-size:0.85rem; max-height:360px; overflow-y:auto; white-space:pre-wrap;"></div>
+        <small style="color:var(--muted); font-style:italic;">Nota: O parecer de IA é uma recomendação consultiva. A aprovação formal é exclusiva do pesquisador.</small>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Fechar</button>
+        <button type="button" class="primary-action" id="btn-copy-ai-suggestion">Copiar para Parecer Humano</button>
+      </div>
     </dialog>
 
     <script src="./app.js"></script>
