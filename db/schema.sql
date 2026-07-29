@@ -98,3 +98,51 @@ CREATE INDEX IF NOT EXISTS idx_needs_research_activity
     ON needs(research_activity_id);
 CREATE INDEX IF NOT EXISTS idx_needs_activity
     ON needs(activity_id);
+
+CREATE TABLE IF NOT EXISTS integration_agreements (
+    agreement_id UUID PRIMARY KEY,
+    counterparty_system_id TEXT NOT NULL,
+    protocol_version TEXT NOT NULL,
+    profile TEXT NOT NULL,
+    revision INTEGER NOT NULL CHECK (revision > 0),
+    agreement_status TEXT NOT NULL CHECK (agreement_status IN (
+        'draft', 'proposed', 'counter_proposed', 'accepted', 'active',
+        'suspended', 'revoked', 'rejected', 'expired', 'incompatible'
+    )),
+    local_processing_status TEXT NOT NULL CHECK (local_processing_status IN (
+        'pending_validation', 'validating', 'awaiting_receipt',
+        'installing_credentials', 'ready', 'failed'
+    )),
+    digest TEXT NOT NULL,
+    proposal JSONB NOT NULL,
+    counterproposal JSONB,
+    negotiated_capabilities JSONB NOT NULL DEFAULT '[]'::jsonb,
+    acceptance_receipt JSONB,
+    activation_receipt JSONB,
+    proposed_by TEXT NOT NULL,
+    accepted_by TEXT,
+    proposed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    accepted_at TIMESTAMPTZ,
+    activated_at TIMESTAMPTZ,
+    suspended_at TIMESTAMPTZ,
+    revoked_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (counterparty_system_id, profile)
+);
+
+CREATE TABLE IF NOT EXISTS integration_agreement_events (
+    event_id UUID PRIMARY KEY,
+    agreement_id UUID NOT NULL REFERENCES integration_agreements(agreement_id),
+    revision INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
+    agreement_status TEXT NOT NULL,
+    local_processing_status TEXT NOT NULL,
+    digest TEXT NOT NULL,
+    issued_by TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    receipt JSONB,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS integration_agreement_events_agreement_idx
+    ON integration_agreement_events(agreement_id, occurred_at);

@@ -43,6 +43,8 @@ REQUIRED_FILES = [
     "adr/ADR-005-nexo-compras-federated-boundary.md",
     "storage/compras_data.example.json",
     "contracts/nexo_compras_integration.schema.json",
+    "contracts/nexo_compras_profile.json",
+    "contracts/nexo_compras.openapi.yaml",
     ".env.example",
     "compose.yml",
     "scripts/validate_tool_contracts.py",

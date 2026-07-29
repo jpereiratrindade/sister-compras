@@ -50,9 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectOllama = document.getElementById('select-ollama-model');
 
   let currentData = null;
+  let currentAgreement = null;
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
   let chatHistoryList = [];
+
+  const escapeHtml = value => String(value ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 
   // Tab switching
   tabs.forEach(button => {
@@ -66,8 +72,112 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetContent) {
         targetContent.classList.add('active');
       }
+      if (button.dataset.tab === 'integration') loadIntegrationAgreement();
     });
   });
+
+  function renderIntegrationAgreement() {
+    const agreement = currentAgreement;
+    const status = agreement?.agreement_status || 'não iniciado';
+    document.getElementById('compras-agreement-status').textContent = status;
+    document.getElementById('compras-agreement-local-status').textContent =
+      agreement?.local_processing_status || '—';
+    document.getElementById('compras-agreement-revision').textContent =
+      agreement?.revision ? `r${agreement.revision}` : '—';
+    document.getElementById('compras-agreement-receipts').textContent =
+      `${Number(Boolean(agreement?.acceptance_receipt)) + Number(Boolean(agreement?.activation_receipt))}/2`;
+    document.getElementById('compras-agreement-id').textContent =
+      agreement?.agreement_id || '—';
+    document.getElementById('compras-agreement-protocol').textContent =
+      agreement?.protocol_version || 'sister.integration-agreement/1.0.0';
+    document.getElementById('compras-agreement-profile').textContent =
+      agreement?.profile || 'nexo-compras.profile/1.0.0';
+    document.getElementById('compras-agreement-digest').textContent =
+      agreement?.digest || '—';
+    document.getElementById('sidebar-agreement-label').textContent =
+      agreement ? `Acordo ${status}` : 'Acordo não iniciado';
+
+    const capabilities = agreement?.proposal?.capabilities || [];
+    document.getElementById('compras-agreement-capabilities').innerHTML =
+      capabilities.map(capability => {
+        const required = capability.requirement === 'required';
+        const selected = capability.decision !== 'declined';
+        return `<label class="capability-option">
+          <input type="checkbox" data-capability-decision="${escapeHtml(capability.capability_id)}"
+            ${selected ? 'checked' : ''} ${required ? 'disabled' : ''}>
+          <span><strong>${escapeHtml(capability.capability_id)}</strong>
+          <small>${escapeHtml(capability.purpose)}</small>
+          <em>${escapeHtml(capability.direction)} · ${escapeHtml(capability.requirement)}</em></span>
+        </label>`;
+      }).join('') || 'O Nexo ainda não enviou uma proposta.';
+
+    document.getElementById('compras-agreement-events').innerHTML =
+      (agreement?.events || []).map(event => `<article>
+        <span class="status-pill">${escapeHtml(event.agreement_status)}</span>
+        <div><strong>${escapeHtml(event.event_type)}</strong>
+        <small>${escapeHtml(event.issued_by)} · ${escapeHtml(event.subject_id)}</small></div>
+        <time>${escapeHtml(event.occurred_at)}</time>
+      </article>`).join('') || 'Nenhum evento registrado.';
+    document.getElementById('compras-agreement-accept').hidden = status !== 'proposed';
+    document.getElementById('compras-agreement-counter').hidden = status !== 'proposed';
+    document.getElementById('compras-agreement-suspend').hidden = status !== 'active';
+    document.getElementById('compras-agreement-revoke').hidden =
+      !['accepted', 'active', 'suspended'].includes(status);
+  }
+
+  async function loadIntegrationAgreement() {
+    try {
+      const response = await fetch(apiUrl('/api/integration-agreements/nexo'), {
+        cache: 'no-store'
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || `Falha HTTP ${response.status}`);
+      currentAgreement = payload.agreement;
+      renderIntegrationAgreement();
+    } catch (error) {
+      const message = document.getElementById('compras-agreement-message');
+      message.textContent = error.message;
+      message.classList.add('error');
+    }
+  }
+
+  async function comprasAgreementAction(action, body = {}) {
+    const message = document.getElementById('compras-agreement-message');
+    message.classList.remove('error');
+    message.textContent = 'Processando acordo bilateral…';
+    try {
+      const response = await fetch(apiUrl(`/api/integration-agreements/nexo/${action}`), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || `Falha HTTP ${response.status}`);
+      currentAgreement = payload.agreement;
+      renderIntegrationAgreement();
+      message.textContent = `Operação concluída: ${payload.status}.`;
+    } catch (error) {
+      message.classList.add('error');
+      message.textContent = error.message;
+    }
+  }
+
+  document.getElementById('compras-agreement-accept').addEventListener(
+    'click', () => comprasAgreementAction('accept'));
+  document.getElementById('compras-agreement-counter').addEventListener('click', () => {
+    const decisions = {};
+    document.querySelectorAll('[data-capability-decision]').forEach(input => {
+      decisions[input.dataset.capabilityDecision] =
+        input.checked ? 'accepted' : 'declined';
+    });
+    comprasAgreementAction('counter-propose', {decisions});
+  });
+  document.getElementById('compras-agreement-suspend').addEventListener(
+    'click', () => confirm('Suspender o acordo com o Nexo?') &&
+      comprasAgreementAction('suspend'));
+  document.getElementById('compras-agreement-revoke').addEventListener(
+    'click', () => confirm('Revogar definitivamente o acordo com o Nexo?') &&
+      comprasAgreementAction('revoke'));
 
   function prefillLeadResearcherInForms() {
     const leadName = (currentData && currentData.projects && currentData.projects[0] && currentData.projects[0].lead_researcher) ? currentData.projects[0].lead_researcher : 'José Pedro Trindade';
@@ -1134,4 +1244,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadOllamaModels();
   loadDashboardData();
+  loadIntegrationAgreement();
+  if (location.hash === '#integration') {
+    document.querySelector('[data-tab="integration"]')?.click();
+  }
 });

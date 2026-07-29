@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: Nexo-Compras Integration Agreement API
+  version: 1.0.0
+  description: >
+    Visão operacional do participante Compras para o perfil
+    nexo-compras.profile/1.0.0.
+paths:
+  /api/v1/integration-agreements/compras:
+    get:
+      summary: Consulta a cópia local do acordo no Nexo
+      responses:
+        "200": {description: Acordo e histórico}
+  /api/v1/integration-agreements/compras/propose:
+    post:
+      summary: Propõe uma revisão ao Compras
+      responses:
+        "200": {description: Proposta entregue}
+  /api/v1/integration-agreements/compras/activate:
+    post:
+      summary: Ativa uma revisão aceita
+      responses:
+        "200": {description: Recibo de ativação}
+  /api/v1/integration-agreements/compras/suspend:
+    post:
+      summary: Suspende o acordo
+      responses:
+        "200": {description: Recibo de suspensão}
+  /api/v1/integration-agreements/compras/revoke:
+    post:
+      summary: Revoga o acordo
+      responses:
+        "200": {description: Recibo de revogação}
+  /api/v1/integration-agreements/compras/receipts/acceptance:
+    post:
+      summary: Recebe a aceitação emitida pelo Compras
+      responses:
+        "200": {description: Aceitação registrada}
+  /api/v1/integration-agreements/compras/counterproposal:
+    post:
+      summary: Recebe uma contraproposta do Compras
+      responses:
+        "200": {description: Contraproposta registrada}
+  /api/v1/integration-agreements/compras/receipts/status:
+    post:
+      summary: Recebe suspensão ou revogação emitida pelo Compras
+      responses:
+        "200": {description: Transição registrada}
+  /api/integration-agreements/nexo:
+    get:
+      summary: Consulta a cópia local do acordo no Compras
+      responses:
+        "200": {description: Acordo e histórico}
+  /api/integration-agreements/proposals:
+    post:
+      summary: Recebe uma proposta do Nexo
+      responses:
+        "200": {description: Proposta registrada}
+  /api/integration-agreements/nexo/accept:
+    post:
+      summary: Aceita exatamente a revisão recebida
+      responses:
+        "200": {description: Recibo entregue ao Nexo}
+  /api/integration-agreements/nexo/counter-propose:
+    post:
+      summary: Negocia capacidades individualmente
+      responses:
+        "200": {description: Contraproposta entregue}
+  /api/integration-agreements/receipts/activation:
+    post:
+      summary: Recebe a ativação emitida pelo Nexo
+      responses:
+        "200": {description: Acordo ativado}
+  /api/integration-agreements/receipts/status:
+    post:
+      summary: Recebe suspensão ou revogação emitida pelo Nexo
+      responses:
+        "200": {description: Transição registrada}
+  /api/integration/data/need-summaries:
+    get:
+      summary: Expõe estados não comerciais sob acordo ativo
+      responses:
+        "200": {description: Resumos autorizados}
+        "403": {description: Acordo ausente ou inativo}

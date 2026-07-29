@@ -78,10 +78,16 @@
           </svg>
           Lista de Compras
         </button>
+        <button class="nav-link" type="button" data-tab="integration">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 7h11l-3-3m3 3-3 3M16 17H5l3 3m-3-3 3-3" />
+          </svg>
+          Acordo com Nexo
+        </button>
       </nav>
       <div class="sidebar-footer">
-        <span>Contrato Ativo</span>
-        <strong>nexo-compras.integration/1.0.0</strong>
+        <span id="sidebar-agreement-label">Acordo não iniciado</span>
+        <strong>nexo-compras.profile/1.0.0</strong>
       </div>
     </aside>
 
@@ -309,6 +315,52 @@
               <tbody id="shopping-table-body"></tbody>
             </table>
           </div>
+        </section>
+      </section>
+      <section class="tab-content view" id="tab-integration">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Governança bilateral</span>
+            <h2>Acordo Nexo ↔ Nexo-Compras</h2>
+            <p>Este Aggregate local registra a visão do Compras sobre a relação institucional.</p>
+          </div>
+          <a class="secondary-action agreement-link" href="../#integracoes">Abrir governança no Nexo</a>
+        </div>
+        <div class="dashboard integration-dashboard">
+          <article class="metric"><strong id="compras-agreement-status">não iniciado</strong><span>Estado bilateral</span></article>
+          <article class="metric"><strong id="compras-agreement-local-status">—</strong><span>Processamento local</span></article>
+          <article class="metric"><strong id="compras-agreement-revision">—</strong><span>Revisão</span></article>
+          <article class="metric"><strong id="compras-agreement-receipts">0/2</strong><span>Recibos verificados</span></article>
+        </div>
+        <div class="integration-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <div><span class="section-kicker">Negociação</span><h3>Capacidades propostas</h3></div>
+            </div>
+            <div id="compras-agreement-capabilities" class="capability-negotiation empty-state">
+              O Nexo ainda não enviou uma proposta.
+            </div>
+            <div class="agreement-actions">
+              <button type="button" class="primary-action" id="compras-agreement-accept" hidden>Aceitar exatamente</button>
+              <button type="button" class="secondary-action" id="compras-agreement-counter" hidden>Enviar contraproposta</button>
+              <button type="button" class="secondary-action" id="compras-agreement-suspend" hidden>Suspender</button>
+              <button type="button" class="secondary-action danger-action" id="compras-agreement-revoke" hidden>Revogar</button>
+              <output id="compras-agreement-message" aria-live="polite"></output>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header"><div><span class="section-kicker">Integridade</span><h3>Identidade do acordo</h3></div></div>
+            <dl class="agreement-metadata">
+              <div><dt>ID</dt><dd id="compras-agreement-id">—</dd></div>
+              <div><dt>Protocolo</dt><dd id="compras-agreement-protocol">sister.integration-agreement/1.0.0</dd></div>
+              <div><dt>Perfil</dt><dd id="compras-agreement-profile">nexo-compras.profile/1.0.0</dd></div>
+              <div><dt>Digest</dt><dd id="compras-agreement-digest">—</dd></div>
+            </dl>
+          </section>
+        </div>
+        <section class="panel agreement-history-panel">
+          <div class="panel-header"><div><span class="section-kicker">Auditoria</span><h3>Histórico local</h3></div></div>
+          <div id="compras-agreement-events" class="agreement-events empty-state">Nenhum evento registrado.</div>
         </section>
       </section>
     </main>

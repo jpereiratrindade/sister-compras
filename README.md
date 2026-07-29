@@ -24,6 +24,12 @@ A integração usa `nexo-compras.integration/1.0.0` e API contratual com o Nexo.
 O SisTer autentica o acesso ao Nexo, e o Nexo encaminha a identidade ao Compras.
 Nenhuma tabela ou credencial é compartilhada.
 
+A aba **Acordo com Nexo** permite aceitar ou contrapropor capacidades e
+acompanhar recibos e histórico. O protocolo é
+`sister.integration-agreement/1.0.0`, especializado pelo perfil
+`nexo-compras.profile/1.0.0`. Dados de integração só são expostos quando a
+capacidade correspondente estiver aceita em um acordo ativo.
+
 ```text
               SisTer
                 ↓

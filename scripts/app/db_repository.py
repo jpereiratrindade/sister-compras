@@ -36,7 +36,7 @@ class DatabaseManager:
                         cur.execute("ALTER TABLE needs ADD COLUMN IF NOT EXISTS description TEXT;")
                         conn.commit()
                 self.use_pg = True
-                print(f"[DatabaseManager] Conectado ao Banco Independente PostgreSQL: {self.conn_str}")
+                print("[DatabaseManager] Conectado ao banco PostgreSQL independente.")
         except Exception as e:
             self.use_pg = False
             print(f"[DatabaseManager] PostgreSQL não ativo ({e}). Utilizando armazenamento local.")
@@ -51,6 +51,268 @@ class DatabaseManager:
                     return cur.fetchone()[0] == 1
         except Exception:
             return False
+
+    def get_integration_agreement(self):
+        if not self.use_pg:
+            return None
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT json_build_object(
+                        'agreement_id', agreement_id,
+                        'counterparty_system_id', counterparty_system_id,
+                        'protocol_version', protocol_version,
+                        'profile', profile,
+                        'revision', revision,
+                        'agreement_status', agreement_status,
+                        'local_processing_status', local_processing_status,
+                        'digest', digest,
+                        'proposal', proposal,
+                        'counterproposal', counterproposal,
+                        'negotiated_capabilities', negotiated_capabilities,
+                        'acceptance_receipt', acceptance_receipt,
+                        'activation_receipt', activation_receipt,
+                        'proposed_by', proposed_by,
+                        'accepted_by', accepted_by,
+                        'proposed_at', proposed_at,
+                        'accepted_at', accepted_at,
+                        'activated_at', activated_at,
+                        'suspended_at', suspended_at,
+                        'revoked_at', revoked_at,
+                        'updated_at', updated_at,
+                        'events', coalesce((
+                            SELECT json_agg(json_build_object(
+                                'event_id', e.event_id,
+                                'revision', e.revision,
+                                'event_type', e.event_type,
+                                'agreement_status', e.agreement_status,
+                                'local_processing_status', e.local_processing_status,
+                                'digest', e.digest,
+                                'issued_by', e.issued_by,
+                                'subject_id', e.subject_id,
+                                'receipt', e.receipt,
+                                'occurred_at', e.occurred_at
+                            ) ORDER BY e.occurred_at DESC)
+                            FROM integration_agreement_events e
+                            WHERE e.agreement_id = integration_agreements.agreement_id
+                        ), '[]'::json)
+                    )
+                    FROM integration_agreements
+                    WHERE counterparty_system_id = 'sister_nexo'
+                      AND profile = 'nexo-compras.profile/1.0.0'
+                """)
+                row = cur.fetchone()
+                return row[0] if row else None
+
+    def receive_integration_proposal(self, proposal, digest, subject_id):
+        agreement_id = proposal["agreement_id"]
+        revision = int(proposal["revision"])
+        capabilities = proposal["capabilities"]
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT agreement_id::text, revision, digest
+                    FROM integration_agreements
+                    WHERE counterparty_system_id = 'sister_nexo'
+                      AND profile = 'nexo-compras.profile/1.0.0'
+                    FOR UPDATE
+                """)
+                current = cur.fetchone()
+                if current:
+                    current_id, current_revision, current_digest = current
+                    if revision < current_revision:
+                        raise ValueError("proposta obsoleta")
+                    if revision == current_revision:
+                        if current_id != agreement_id or current_digest != digest:
+                            raise ValueError("revisão conflitante com o acordo vigente")
+                        return self.get_integration_agreement()
+                    if current_id != agreement_id:
+                        raise ValueError("nova revisão alterou o agreement_id")
+                cur.execute("""
+                    INSERT INTO integration_agreements (
+                        agreement_id, counterparty_system_id, protocol_version,
+                        profile, revision, agreement_status,
+                        local_processing_status, digest, proposal,
+                        negotiated_capabilities, proposed_by
+                    ) VALUES (
+                        %s::uuid, 'sister_nexo', %s, %s, %s, 'proposed',
+                        'pending_validation', %s, %s::jsonb, %s::jsonb, %s
+                    )
+                    ON CONFLICT (counterparty_system_id, profile) DO UPDATE SET
+                        agreement_id = excluded.agreement_id,
+                        protocol_version = excluded.protocol_version,
+                        revision = excluded.revision,
+                        agreement_status = 'proposed',
+                        local_processing_status = 'pending_validation',
+                        digest = excluded.digest,
+                        proposal = excluded.proposal,
+                        counterproposal = null,
+                        negotiated_capabilities = excluded.negotiated_capabilities,
+                        acceptance_receipt = null,
+                        activation_receipt = null,
+                        proposed_by = excluded.proposed_by,
+                        accepted_by = null,
+                        proposed_at = now(),
+                        accepted_at = null,
+                        activated_at = null,
+                        updated_at = now()
+                    WHERE integration_agreements.revision < excluded.revision
+                """, (
+                    agreement_id, proposal["protocol_version"], proposal["profile"],
+                    revision, digest, json.dumps(proposal),
+                    json.dumps(capabilities), subject_id
+                ))
+                self._append_integration_event(
+                    cur, agreement_id, revision, "proposal_received", "proposed",
+                    "pending_validation", digest, "sister_nexo", subject_id, None
+                )
+            conn.commit()
+        return self.get_integration_agreement()
+
+    def accept_integration_proposal(self, receipt, capabilities, subject_id):
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE integration_agreements SET
+                        agreement_status = 'accepted',
+                        local_processing_status = 'awaiting_receipt',
+                        negotiated_capabilities = %s::jsonb,
+                        acceptance_receipt = %s::jsonb,
+                        accepted_by = %s,
+                        accepted_at = now(),
+                        updated_at = now()
+                    WHERE agreement_id = %s::uuid
+                      AND revision = %s
+                      AND digest = %s
+                      AND agreement_status = 'proposed'
+                """, (
+                    json.dumps(capabilities), json.dumps(receipt), subject_id,
+                    receipt["agreement_id"], receipt["revision"], receipt["digest"]
+                ))
+                if cur.rowcount != 1:
+                    raise ValueError("proposta inexistente, divergente ou já respondida")
+                self._append_integration_event(
+                    cur, receipt["agreement_id"], receipt["revision"],
+                    "acceptance_issued", "accepted", "awaiting_receipt",
+                    receipt["digest"], "sister_compras", subject_id, receipt
+                )
+            conn.commit()
+        return self.get_integration_agreement()
+
+    def counter_propose_integration(self, counterproposal, digest, subject_id):
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE integration_agreements SET
+                        agreement_status = 'counter_proposed',
+                        local_processing_status = 'awaiting_receipt',
+                        counterproposal = %s::jsonb,
+                        negotiated_capabilities = %s::jsonb,
+                        digest = %s,
+                        revision = %s,
+                        accepted_by = %s,
+                        updated_at = now()
+                    WHERE agreement_id = %s::uuid
+                      AND agreement_status = 'proposed'
+                """, (
+                    json.dumps(counterproposal), json.dumps(counterproposal["capabilities"]),
+                    digest, counterproposal["revision"], subject_id,
+                    counterproposal["agreement_id"]
+                ))
+                if cur.rowcount != 1:
+                    raise ValueError("proposta não está disponível para contraproposta")
+                self._append_integration_event(
+                    cur, counterproposal["agreement_id"], counterproposal["revision"],
+                    "counterproposal_issued", "counter_proposed", "awaiting_receipt",
+                    digest, "sister_compras", subject_id, counterproposal
+                )
+            conn.commit()
+        return self.get_integration_agreement()
+
+    def activate_integration_agreement(self, receipt, subject_id):
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT activation_receipt
+                    FROM integration_agreements
+                    WHERE agreement_id = %s::uuid
+                    FOR UPDATE
+                """, (receipt["agreement_id"],))
+                current = cur.fetchone()
+                if current and current[0] is not None:
+                    if current[0] != receipt:
+                        raise ValueError("recibo de ativação conflita com o vigente")
+                    return self.get_integration_agreement()
+                cur.execute("""
+                    UPDATE integration_agreements SET
+                        agreement_status = 'active',
+                        local_processing_status = 'ready',
+                        activation_receipt = %s::jsonb,
+                        activated_at = now(),
+                        updated_at = now()
+                    WHERE agreement_id = %s::uuid
+                      AND revision = %s
+                      AND digest = %s
+                      AND acceptance_receipt IS NOT NULL
+                """, (
+                    json.dumps(receipt), receipt["agreement_id"],
+                    receipt["revision"], receipt["digest"]
+                ))
+                if cur.rowcount != 1:
+                    raise ValueError("recibo de ativação não corresponde ao acordo aceito")
+                self._append_integration_event(
+                    cur, receipt["agreement_id"], receipt["revision"],
+                    "activation_received", "active", "ready", receipt["digest"],
+                    "sister_nexo", subject_id, receipt
+                )
+            conn.commit()
+        return self.get_integration_agreement()
+
+    def transition_integration_agreement(self, status, receipt, subject_id, issued_by):
+        if status not in {"suspended", "revoked"}:
+            raise ValueError("transição não permitida")
+        timestamp_column = "suspended_at" if status == "suspended" else "revoked_at"
+        with psycopg.connect(self.conn_str) as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    UPDATE integration_agreements SET
+                        agreement_status = %s,
+                        local_processing_status = 'ready',
+                        {timestamp_column} = now(),
+                        updated_at = now()
+                    WHERE agreement_id = %s::uuid
+                      AND revision = %s
+                      AND digest = %s
+                """, (
+                    status, receipt["agreement_id"],
+                    receipt["revision"], receipt["digest"]
+                ))
+                if cur.rowcount != 1:
+                    raise ValueError("recibo não corresponde ao acordo")
+                self._append_integration_event(
+                    cur, receipt["agreement_id"], receipt["revision"],
+                    f"{status}_received", status, "ready", receipt["digest"],
+                    issued_by, subject_id, receipt
+                )
+            conn.commit()
+        return self.get_integration_agreement()
+
+    @staticmethod
+    def _append_integration_event(
+        cursor, agreement_id, revision, event_type, agreement_status,
+        local_processing_status, digest, issued_by, subject_id, receipt
+    ):
+        import uuid
+        cursor.execute("""
+            INSERT INTO integration_agreement_events (
+                event_id, agreement_id, revision, event_type, agreement_status,
+                local_processing_status, digest, issued_by, subject_id, receipt
+            ) VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+        """, (
+            str(uuid.uuid4()), agreement_id, revision, event_type,
+            agreement_status, local_processing_status, digest, issued_by,
+            subject_id, json.dumps(receipt) if receipt is not None else "null"
+        ))
 
     def load_data(self):
         if self.use_pg:

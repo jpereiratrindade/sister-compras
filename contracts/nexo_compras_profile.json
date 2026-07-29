@@ -1,0 +1,44 @@
+{
+  "profile": "nexo-compras.profile/1.0.0",
+  "protocol_version": "sister.integration-agreement/1.0.0",
+  "participants": ["sister_nexo", "sister_compras"],
+  "identity_mode": "shared_provider",
+  "identity_provider": "sister",
+  "capability_catalog": [
+    {
+      "capability_id": "nexo.project-context.read",
+      "direction": "proposer_to_counterparty",
+      "requirement": "required",
+      "purpose": "Contextualizar necessidades pela autoridade científica do Nexo.",
+      "schema_ref": "nexo-project-context/1.0.0",
+      "operations": ["GET /api/v1/integrations/compras/context"],
+      "default_constraints": {"commercial_details": false}
+    },
+    {
+      "capability_id": "nexo.activities.read",
+      "direction": "proposer_to_counterparty",
+      "requirement": "required",
+      "purpose": "Validar referências de atividades de pesquisa e operacionais.",
+      "schema_ref": "nexo-activity-context/1.0.0",
+      "operations": ["GET /api/v1/integrations/compras/context"],
+      "default_constraints": {"active_only": true}
+    },
+    {
+      "capability_id": "compras.need-summary.read",
+      "direction": "counterparty_to_proposer",
+      "requirement": "optional",
+      "purpose": "Acompanhar atendimento sem expor detalhes comerciais.",
+      "schema_ref": "compras-need-summary/1.0.0",
+      "operations": ["GET /api/integration/data/need-summaries"],
+      "default_constraints": {
+        "commercial_details": false,
+        "supplier_data": false
+      }
+    }
+  ],
+  "data_authority": {
+    "sister_nexo": ["projects", "research_activities", "operational_activities"],
+    "sister_compras": ["needs", "procurement_status", "fulfillment"],
+    "bilateral": ["confirmed_activity_need_link"]
+  }
+}

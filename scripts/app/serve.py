@@ -8,12 +8,68 @@ import sys
 import os
 import json
 import re
+import hashlib
+import uuid
+from datetime import datetime, timezone
 from db_repository import db_manager
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8016
 HOST = os.environ.get("NEXO_COMPRAS_HOST", "127.0.0.1")
 WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../web'))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+
+def canonical_digest(payload):
+    encoded = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(',', ':')
+    ).encode('utf-8')
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+def integration_receipt(agreement, event, issued_by, subject_id):
+    previous = agreement.get("acceptance_receipt")
+    return {
+        "receipt_id": str(uuid.uuid4()),
+        "agreement_id": str(agreement["agreement_id"]),
+        "revision": int(agreement["revision"]),
+        "digest": agreement["digest"],
+        "event": event,
+        "issued_by": issued_by,
+        "issued_at": utc_now(),
+        "subject_id": subject_id,
+        "previous_receipt_digest": (
+            canonical_digest(previous) if previous and event != "accepted" else None
+        ),
+        "signature": None,
+    }
+
+def agreement_allows(agreement, capability_id):
+    if not agreement or agreement.get("agreement_status") != "active":
+        return False
+    return any(
+        capability.get("capability_id") == capability_id
+        and capability.get("decision") in {"accepted", "accepted_with_constraints"}
+        for capability in agreement.get("negotiated_capabilities", [])
+    )
+
+def post_nexo(path, payload, identity):
+    request = urllib.request.Request(
+        f"http://127.0.0.1:8015{path}",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-Sister-Subject": identity["subject"],
+            "X-Sister-Name": identity["name"],
+            "X-Sister-Email": identity["email"],
+            "X-Sister-Role": identity["role"],
+            "X-Sister-System": "sister_compras",
+            "User-Agent": "Nexo-Compras/0.4.0",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 def fetch_ollama_models():
     try:
@@ -358,6 +414,42 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/me':
             self.send_json(200, identity)
             return
+        if path == '/api/integration-agreements/nexo':
+            self.send_json(200, {
+                "agreement": db_manager.get_integration_agreement(),
+                "participant": "sister_compras",
+                "counterparty": "sister_nexo",
+            })
+            return
+        if path == '/api/integration/data/need-summaries':
+            agreement = db_manager.get_integration_agreement()
+            if not agreement_allows(agreement, "compras.need-summary.read"):
+                self.send_json(403, {
+                    "status": "error",
+                    "detail": (
+                        "A capacidade compras.need-summary.read não está "
+                        "ativa no acordo Nexo–Compras."
+                    )
+                })
+                return
+            project_id = query.get("project_id", [None])[0]
+            data = db_manager.load_data()
+            summaries = [{
+                "need_id": need["id"],
+                "project_id": need.get("project_id"),
+                "research_activity_id": need.get("research_activity_id"),
+                "activity_id": need.get("activity_id"),
+                "title": need.get("title"),
+                "status": need.get("status"),
+                "priority": need.get("priority"),
+            } for need in data.get("needs", [])
+              if project_id is None or need.get("project_id") == project_id]
+            self.send_json(200, {
+                "schema": "compras-need-summary/1.0.0",
+                "agreement_id": str(agreement["agreement_id"]),
+                "items": summaries,
+            })
+            return
         if path == '/api/nexo/context':
             request = urllib.request.Request(
                 "http://127.0.0.1:8015/api/v1/integrations/compras/context",
@@ -415,6 +507,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         identity = self.require_identity()
         if identity is None:
             return
+        if identity["role"] != "admin" and self.path.startswith(
+            "/api/integration-agreements/"
+        ):
+            self.send_json(403, {
+                "status": "error",
+                "detail": "A governança de acordos exige papel administrativo."
+            })
+            return
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
@@ -422,6 +522,190 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             payload = json.loads(post_data.decode('utf-8'))
         except Exception:
             self.send_error(400, "JSON invalido")
+            return
+
+        path = urllib.parse.urlparse(self.path).path
+        if path == '/api/integration-agreements/proposals':
+            try:
+                proposal = payload["proposal"]
+                digest = payload["digest"]
+                if canonical_digest(proposal) != digest:
+                    raise ValueError("digest da proposta é inválido")
+                if (
+                    proposal.get("protocol_version")
+                    != "sister.integration-agreement/1.0.0"
+                    or proposal.get("profile") != "nexo-compras.profile/1.0.0"
+                    or proposal.get("proposer_system_id") != "sister_nexo"
+                    or proposal.get("counterparty_system_id") != "sister_compras"
+                ):
+                    raise ValueError("proposta incompatível com o perfil Nexo-Compras")
+                result = db_manager.receive_integration_proposal(
+                    proposal, digest, identity["subject"]
+                )
+                self.send_json(201, {"status": "proposed", "agreement": result})
+            except (KeyError, TypeError, ValueError) as error:
+                self.send_json(422, {"status": "error", "detail": str(error)})
+            return
+
+        if path == '/api/integration-agreements/nexo/accept':
+            try:
+                agreement = db_manager.get_integration_agreement()
+                if not agreement:
+                    raise ValueError("nenhuma proposta recebida")
+                if agreement["agreement_status"] == "accepted":
+                    receipt = agreement["acceptance_receipt"]
+                else:
+                    if agreement["agreement_status"] != "proposed":
+                        raise ValueError("o acordo não está aguardando aceite")
+                    capabilities = agreement["proposal"]["capabilities"]
+                    negotiated = [{
+                        **capability,
+                        "decision": (
+                            "declined"
+                            if capability.get("decision") == "declined"
+                            else "accepted"
+                        ),
+                        "accepted_constraints": (
+                            {}
+                            if capability.get("decision") == "declined"
+                            else capability["requested_constraints"]
+                        ),
+                        "decision_reason": (
+                            capability.get("decision_reason")
+                            if capability.get("decision") == "declined"
+                            else "Aceita integralmente pelo Nexo-Compras."
+                        )
+                    } for capability in capabilities]
+                    receipt = integration_receipt(
+                        agreement, "accepted", "sister_compras", identity["subject"]
+                    )
+                    agreement = db_manager.accept_integration_proposal(
+                        receipt, negotiated, identity["subject"]
+                    )
+                post_nexo(
+                    "/api/v1/integration-agreements/compras/receipts/acceptance",
+                    {"receipt": receipt,
+                     "capabilities": agreement["negotiated_capabilities"]},
+                    identity
+                )
+                self.send_json(200, {"status": "accepted", "agreement": agreement})
+            except (ValueError, urllib.error.URLError, TimeoutError) as error:
+                self.send_json(502, {"status": "error", "detail": str(error)})
+            return
+
+        if path == '/api/integration-agreements/nexo/counter-propose':
+            try:
+                agreement = db_manager.get_integration_agreement()
+                if not agreement or agreement["agreement_status"] != "proposed":
+                    raise ValueError("nenhuma proposta está aguardando negociação")
+                decisions = payload.get("decisions", {})
+                capabilities = []
+                for capability in agreement["proposal"]["capabilities"]:
+                    decision = decisions.get(
+                        capability["capability_id"], "accepted"
+                    )
+                    if decision not in {
+                        "accepted", "accepted_with_constraints", "declined"
+                    }:
+                        raise ValueError(
+                            f"decisão inválida para "
+                            f"{capability['capability_id']}: {decision}"
+                        )
+                    if capability["requirement"] == "required" and decision == "declined":
+                        raise ValueError(
+                            f"capacidade obrigatória não pode ser recusada: "
+                            f"{capability['capability_id']}"
+                        )
+                    capabilities.append({
+                        **capability,
+                        "decision": decision,
+                        "accepted_constraints": (
+                            capability["requested_constraints"]
+                            if decision != "declined" else {}
+                        ),
+                        "decision_reason": (
+                            "Contraproposta do Nexo-Compras."
+                            if decision != "accepted"
+                            else "Aceita na contraproposta."
+                        )
+                    })
+                counterproposal = {
+                    **agreement["proposal"],
+                    "revision": int(agreement["revision"]) + 1,
+                    "proposer_system_id": "sister_compras",
+                    "counterparty_system_id": "sister_nexo",
+                    "capabilities": capabilities,
+                }
+                digest = canonical_digest(counterproposal)
+                agreement = db_manager.counter_propose_integration(
+                    counterproposal, digest, identity["subject"]
+                )
+                post_nexo(
+                    "/api/v1/integration-agreements/compras/counterproposal",
+                    {"counterproposal": counterproposal, "digest": digest},
+                    identity
+                )
+                self.send_json(200, {
+                    "status": "counter_proposed", "agreement": agreement
+                })
+            except (ValueError, urllib.error.URLError, TimeoutError) as error:
+                self.send_json(502, {"status": "error", "detail": str(error)})
+            return
+
+        if path == '/api/integration-agreements/receipts/activation':
+            try:
+                receipt = payload["receipt"]
+                if (
+                    receipt.get("event") != "activated"
+                    or receipt.get("issued_by") != "sister_nexo"
+                ):
+                    raise ValueError("recibo de ativação possui emissor ou evento inválido")
+                agreement = db_manager.activate_integration_agreement(
+                    receipt, identity["subject"]
+                )
+                self.send_json(200, {"status": "active", "agreement": agreement})
+            except (KeyError, ValueError) as error:
+                self.send_json(422, {"status": "error", "detail": str(error)})
+            return
+
+        if path == '/api/integration-agreements/receipts/status':
+            try:
+                receipt = payload["receipt"]
+                if receipt.get("issued_by") != "sister_nexo":
+                    raise ValueError("emissor do recibo de estado é inválido")
+                agreement = db_manager.transition_integration_agreement(
+                    receipt["event"], receipt, identity["subject"],
+                    receipt["issued_by"]
+                )
+                self.send_json(200, {
+                    "status": receipt["event"], "agreement": agreement
+                })
+            except (KeyError, ValueError) as error:
+                self.send_json(422, {"status": "error", "detail": str(error)})
+            return
+
+        if path in {
+            '/api/integration-agreements/nexo/suspend',
+            '/api/integration-agreements/nexo/revoke'
+        }:
+            try:
+                status = "suspended" if path.endswith("/suspend") else "revoked"
+                agreement = db_manager.get_integration_agreement()
+                if not agreement:
+                    raise ValueError("acordo inexistente")
+                receipt = integration_receipt(
+                    agreement, status, "sister_compras", identity["subject"]
+                )
+                agreement = db_manager.transition_integration_agreement(
+                    status, receipt, identity["subject"], "sister_compras"
+                )
+                post_nexo(
+                    "/api/v1/integration-agreements/compras/receipts/status",
+                    {"receipt": receipt}, identity
+                )
+                self.send_json(200, {"status": status, "agreement": agreement})
+            except (ValueError, urllib.error.URLError, TimeoutError) as error:
+                self.send_json(502, {"status": "error", "detail": str(error)})
             return
 
         data = db_manager.load_data()

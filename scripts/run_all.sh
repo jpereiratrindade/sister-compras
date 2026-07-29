@@ -93,7 +93,8 @@ if [[ -z "${SISTER_HOME:-}" ]]; then
 fi
 
 mkdir -p .run
-python3 scripts/app/serve.py "${PORT}" >>.run/nexo-compras.log 2>&1 &
+nohup python3 scripts/app/serve.py "${PORT}" \
+    </dev/null >>.run/nexo-compras.log 2>&1 &
 SERVER_PID=$!
 echo "${SERVER_PID}" >.run/nexo-compras.pid
 for attempt in $(seq 1 30); do

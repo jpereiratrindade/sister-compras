@@ -53,6 +53,9 @@ bruta permanecem no Compras.
 - saúde sanitizada em `/api/health`;
 - proxy autenticado do Nexo em `/integrations/nexo/compras/`;
 - contexto do Nexo consumido por `/api/nexo/context`;
+- acordo bilateral persistido e auditável pelo protocolo
+  `sister.integration-agreement/1.0.0`;
+- negociação de capacidades e recibos operacionalizados nas interfaces web;
 - dados operacionais ignorados e exemplo sanitizado versionado.
 
 ## Critérios de aceite

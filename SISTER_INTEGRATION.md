@@ -30,5 +30,18 @@ identidade autenticada, proveniência e referências estáveis.
 - identidade recebida pelos cabeçalhos `X-Sister-*` encaminhados pelo Nexo;
 - contexto de projetos consultado pela API do Nexo.
 
+## Aperto de mãos bilateral
+
+Cada sistema persiste seu próprio `IntegrationAgreement`, correlacionado por
+identificador, revisão e digest. O Nexo propõe; o Compras pode aceitar ou
+contrapropor capacidades individualmente; o Nexo adota a contraproposta e
+ativa a revisão aceita. Suspensão e revogação também produzem recibos nos dois
+lados.
+
+O acordo pode ser operado pelas duas interfaces web. Essa interface não
+substitui a API: ela comanda o Aggregate local, e os sistemas sincronizam a
+decisão por endpoints contratuais. Assim, a governança é humana e visível sem
+transformar cliques ou telas em protocolo implícito.
+
 Consulte
 [`adr/ADR-005-nexo-compras-federated-boundary.md`](adr/ADR-005-nexo-compras-federated-boundary.md).
