@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3ZM9 12l2 2 4-5"/></svg>
             Decisões
           </button>
+          <button class="nav-link" type="button" data-tab="shopping-list">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            Lista de Compras
+          </button>
         </nav>
         <div class="sidebar-footer">
           <span>Contrato Ativo</span>
@@ -146,6 +150,70 @@
           </div>
           <div id="decisions-timeline" class="timeline"></div>
         </section>
+
+        <!-- Nova Aba: Lista de Compras -->
+        <section class="tab-content view" id="tab-shopping-list">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">Consolidação Orçamentária</span>
+              <h2>Lista Oficial de Compras do Projeto</h2>
+              <p>Relatório de aquisição e gestão de entrega dos recursos aprovados.</p>
+            </div>
+            <div class="action-button-group">
+              <a href="/api/reports/shopping-list" target="_blank" class="primary-action" style="text-decoration:none;">
+                🖨️ Imprimir Lista Oficial (PDF)
+              </a>
+              <a href="/api/data" target="_blank" class="secondary-action" style="text-decoration:none;">
+                Exportar Contrato JSON
+              </a>
+            </div>
+          </div>
+
+          <div class="dashboard">
+            <article class="metric" style="border-left: 4px solid var(--teal);">
+              <strong id="shopping-total-budget" style="color:var(--teal);">R$ 0,00</strong>
+              <span>Orçamento Total Aprovado</span>
+            </article>
+            <article class="metric">
+              <strong id="shopping-items-count">0</strong>
+              <span>Itens com Decisão Final</span>
+            </article>
+            <article class="metric">
+              <strong id="shopping-purchased-count">0</strong>
+              <span>Itens Adquiridos/Comprados</span>
+            </article>
+            <article class="metric">
+              <strong id="shopping-delivered-count">0</strong>
+              <span>Itens Entregues/Recebidos</span>
+            </article>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Gestão de Compras e Fornecedores</span>
+                <h3>Itens Aprovados para Aquisição</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Necessidade / Item Aprovado</th>
+                    <th>Categoria</th>
+                    <th>Fornecedor</th>
+                    <th>Qtd</th>
+                    <th>Subtotal (R$)</th>
+                    <th>Status Compras</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="shopping-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
       </main>
 
       <footer class="footer">
@@ -164,8 +232,11 @@
         <div class="form-body">
           <label>
             Título da Necessidade / Recurso
-            <input type="text" name="title" required placeholder="Ex: Sensor de umidade de solo IP67">
+            <input type="text" name="title" id="need-title-input" required placeholder="Ex: Sensor de umidade de solo IP67">
           </label>
+          <div style="text-align:right; margin-top:-6px;">
+            <button type="button" class="ai-button" id="btn-ai-specify-reqs">⚡ Sugerir Requisitos com IA (qwen2.5:14b)</button>
+          </div>
           <div class="form-row">
             <label>
               Categoria

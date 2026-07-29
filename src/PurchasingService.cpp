@@ -216,4 +216,22 @@ std::string PurchasingService::exportProjectReportMarkdown(const std::string& pr
     return ss.str();
 }
 
+double PurchasingService::calculateTotalBudget(const std::string& project_id) const {
+    double total = 0.0;
+    auto needs = getNeedsByProject(project_id);
+    for (const auto& need : needs) {
+        auto decOpt = getDecisionForNeed(need.id);
+        if (decOpt) {
+            for (const auto& alt : need.alternatives) {
+                if (alt.id == decOpt->selected_alternative_id && !alt.prices.empty()) {
+                    total += (alt.prices[0].unit_price * need.quantity);
+                    break;
+                }
+            }
+        }
+    }
+    return total;
+}
+
 } // namespace sister_compras::services
+

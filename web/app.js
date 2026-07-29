@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenAlt = document.getElementById('btn-open-alt-modal');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
+  const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
 
   const formNeed = document.getElementById('form-need');
   const formAlt = document.getElementById('form-alternative');
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/ollama/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ need_id: needId, model: model })
+        body: JSON.stringify({ need_id: needId, model: model, mode: 'analyze' })
       });
       document.getElementById('ai-loading').style.display = 'none';
       if (res.ok) {
@@ -130,6 +131,63 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       document.getElementById('ai-loading').style.display = 'none';
       document.getElementById('ai-content-box').textContent = `Falha na requisição ao Ollama: ${err.message}`;
+    }
+  };
+
+  // AI Specify Requirements
+  if (btnAiSpecify) {
+    btnAiSpecify.addEventListener('click', async () => {
+      const titleInput = document.getElementById('need-title-input');
+      if (!titleInput || !titleInput.value.trim()) {
+        alert('Digite o título da necessidade primeiro.');
+        return;
+      }
+      const model = selectOllama ? selectOllama.value : 'qwen2.5:14b';
+      document.getElementById('ai-modal-title').textContent = `Especificação de Requisitos com ${model}`;
+      document.getElementById('ai-loading').style.display = 'block';
+      document.getElementById('ai-content-box').textContent = '';
+      modalAi.showModal();
+
+      try {
+        const res = await fetch('/api/ollama/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            need_id: 'TEMP',
+            model: model,
+            mode: 'specify'
+          })
+        });
+        document.getElementById('ai-loading').style.display = 'none';
+        if (res.ok) {
+          const result = await res.json();
+          lastAiAnalysisText = result.analysis || '';
+          document.getElementById('ai-content-box').textContent = lastAiAnalysisText;
+        } else {
+          document.getElementById('ai-content-box').textContent = 'Erro ao consultar o Ollama.';
+        }
+      } catch (err) {
+        document.getElementById('ai-loading').style.display = 'none';
+        document.getElementById('ai-content-box').textContent = `Erro: ${err.message}`;
+      }
+    });
+  }
+
+  // Update Status of Need (Purchased / Delivered)
+  window.updateNeedStatus = async function(needId, newStatus) {
+    try {
+      const res = await fetch('/api/needs/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ need_id: needId, status: newStatus })
+      });
+      if (res.ok) {
+        await loadDashboardData();
+      } else {
+        alert('Erro ao atualizar status do item.');
+      }
+    } catch (err) {
+      console.error('Falha na atualização:', err);
     }
   };
 
@@ -296,6 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const needs = data.needs || [];
     const decisions = data.decisions || [];
+    const decisionMap = {};
+    decisions.forEach(d => { decisionMap[d.need_id] = d; });
 
     // Update metrics
     document.getElementById('metric-needs-count').textContent = needs.length;
@@ -328,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
-            <span class="status-pill ${need.status === 'Decidida' ? 'healthy' : 'degraded'}">${need.status}</span>
+            <span class="status-pill ${need.status === 'Decidida' || need.status === 'Adquirida' || need.status === 'Entregue' ? 'healthy' : 'degraded'}">${need.status}</span>
           </div>
         </div>
         <div class="system-card-meta">
@@ -373,6 +433,56 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       timeline.appendChild(item);
     });
+
+    // Render Shopping List Tab
+    let totalBudget = 0.0;
+    let purchasedCount = 0;
+    let deliveredCount = 0;
+    const shoppingTableBody = document.getElementById('shopping-table-body');
+    shoppingTableBody.innerHTML = '';
+
+    needs.forEach(need => {
+      const dec = decisionMap[need.id];
+      if (need.status === 'Adquirida') purchasedCount++;
+      if (need.status === 'Entregue') deliveredCount++;
+
+      let supplier = 'N/A';
+      let subtotal = 0.0;
+      let altTitle = 'Aguardando Parecer';
+
+      if (dec && need.alternatives) {
+        const alt = need.alternatives.find(a => a.id === dec.selected_alternative_id);
+        if (alt) {
+          altTitle = alt.title;
+          supplier = alt.supplier_or_source || 'N/A';
+          if (alt.prices && alt.prices[0]) {
+            subtotal = alt.prices[0].unit_price * need.quantity;
+            totalBudget += subtotal;
+          }
+        }
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${need.id}</strong></td>
+        <td>${need.title}<br><small style="color:var(--muted);">${altTitle}</small></td>
+        <td>${need.category}</td>
+        <td>${supplier}</td>
+        <td>${need.quantity}</td>
+        <td><strong>R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></td>
+        <td><span class="status-pill ${need.status === 'Entregue' ? 'healthy' : (need.status === 'Adquirida' ? 'healthy' : 'degraded')}">${need.status}</span></td>
+        <td>
+          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="updateNeedStatus('${need.id}', 'Adquirida')">Marcar Adquirida</button>
+          <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; margin-top:4px;" onclick="updateNeedStatus('${need.id}', 'Entregue')">Marcar Entregue</button>
+        </td>
+      `;
+      shoppingTableBody.appendChild(row);
+    });
+
+    document.getElementById('shopping-total-budget').textContent = `R$ ${totalBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('shopping-items-count').textContent = decisions.length;
+    document.getElementById('shopping-purchased-count').textContent = purchasedCount;
+    document.getElementById('shopping-delivered-count').textContent = deliveredCount;
   }
 
   if (refreshBtn) {

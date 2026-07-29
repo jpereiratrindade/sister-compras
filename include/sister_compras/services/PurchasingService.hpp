@@ -30,9 +30,10 @@ public:
     bool addPriceObservation(const std::string& need_id, const std::string& alternative_id, const domain::PriceObservation& price);
     bool addEvidenceToAlternative(const std::string& need_id, const std::string& alternative_id, const domain::Evidence& evidence);
 
-    // Decision recording
+    // Decision recording & Budget calculation
     bool recordDecision(const domain::Decision& decision);
     std::optional<domain::Decision> getDecisionForNeed(const std::string& need_id) const;
+    double calculateTotalBudget(const std::string& project_id) const;
 
     // Export JSON / Report
     std::string exportProjectReportJson(const std::string& project_id) const;

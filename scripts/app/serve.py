@@ -42,8 +42,18 @@ def fetch_ollama_models():
         print(f"[Ollama] Erro ao consultar modelos locais: {e}")
         return ["qwen2.5:14b", "qwen2.5:7b", "llama3:8b"]
 
-def generate_ollama_analysis(model_name, need_item):
-    prompt_text = f"""Você é o Assistente de Compras e Aquisições do SisTer-Compras.
+def generate_ollama_analysis(model_name, need_item, mode="analyze"):
+    if mode == "specify":
+        prompt_text = f"""Você é o Assistente de Engenharia e Especificação do SisTer-Compras.
+O pesquisador cadastrou o seguinte recurso de pesquisa:
+Título: {need_item.get('title')}
+Categoria: {need_item.get('category')}
+Quantidade: {need_item.get('quantity')}
+
+Sugira uma lista de 3 a 5 requisitos técnicos fundamentais (obrigatorios, de segurança e normativos) para este item em formato JSON ou lista estruturada.
+Resposta curta e objetiva."""
+    else:
+        prompt_text = f"""Você é o Assistente de Compras e Aquisições do SisTer-Compras.
 Análise da Necessidade de Pesquisa:
 ID: {need_item.get('id')}
 Título: {need_item.get('title')}
@@ -56,7 +66,7 @@ Alternativas e Cotações: {json.dumps(need_item.get('alternatives', []), ensure
 
 Por favor, elabore:
 1. Avaliação de conformidade das cotações em relação aos requisitos.
-2. Identificação de lacunas ou pontos de ateno.
+2. Identificação de lacunas ou pontos de atenção.
 3. Minuta de Justificativa Técnica recomendada para a decisão do pesquisador.
 Importante: Sua resposta é uma sugestão de IA. A decisão final é exclusivamente humana."""
 
@@ -78,6 +88,120 @@ Importante: Sua resposta é uma sugestão de IA. A decisão final é exclusivame
             return res_data.get('response', 'Nenhuma resposta gerada pelo modelo.')
     except Exception as e:
         return f"[Erro Ollama] Falha ao comunicar com {model_name} em {OLLAMA_URL}: {e}"
+
+def generate_print_html(data):
+    project = data.get('projects', [{}])[0]
+    needs = data.get('needs', [])
+    decisions = {d['need_id']: d for d in data.get('decisions', [])}
+    
+    total_budget = 0.0
+    items_rows = ""
+    
+    for need in needs:
+        dec = decisions.get(need['id'])
+        alt_title = "Pendente"
+        supplier = "N/A"
+        price_str = "R$ 0,00"
+        subtotal_str = "R$ 0,00"
+        
+        if dec and need.get('alternatives'):
+            for alt in need['alternatives']:
+                if alt['id'] == dec.get('selected_alternative_id'):
+                    alt_title = alt.get('title', 'Alternativa Aprovada')
+                    supplier = alt.get('supplier_or_source', 'N/A')
+                    if alt.get('prices') and len(alt['prices']) > 0:
+                        unit_p = alt['prices'][0].get('unit_price', 0.0)
+                        subtotal = unit_p * need.get('quantity', 1)
+                        total_budget += subtotal
+                        price_str = f"R$ {unit_p:,.2f}"
+                        subtotal_str = f"R$ {subtotal:,.2f}"
+                    break
+        
+        items_rows += f"""
+        <tr>
+            <td><strong>{need.get('id')}</strong></td>
+            <td>{need.get('title')}<br><small style="color:#666">{alt_title}</small></td>
+            <td>{need.get('category')}</td>
+            <td>{supplier}</td>
+            <td>{need.get('quantity')}</td>
+            <td>{price_str}</td>
+            <td><strong>{subtotal_str}</strong></td>
+            <td><span class="status-tag">{need.get('status', 'Especificada')}</span></td>
+        </tr>
+        """
+
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Lista de Compras Oficial — {project.get('id')}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #09254b; background: #fff; }}
+        .header {{ border-bottom: 2px solid #062d55; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }}
+        .header h1 {{ margin: 0; font-size: 24px; color: #062d55; }}
+        .meta {{ font-size: 14px; margin-bottom: 24px; background: #f4f8fb; padding: 16px; border-radius: 8px; border: 1px solid #dce7ef; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }}
+        th, td {{ padding: 10px 12px; text-align: left; border-bottom: 1px solid #dce7ef; }}
+        th {{ background: #062d55; color: #fff; text-transform: uppercase; font-size: 12px; }}
+        .total-box {{ margin-top: 24px; text-align: right; font-size: 18px; font-weight: bold; color: #062d55; border-top: 2px solid #062d55; padding-top: 12px; }}
+        .signatures {{ margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center; font-size: 13px; }}
+        .sig-line {{ border-top: 1px solid #09254b; padding-top: 8px; font-weight: bold; }}
+        .status-tag {{ background: #edf2f8; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }}
+        @media print {{ body {{ padding: 0; }} button {{ display: none; }} }}
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" style="float:right; padding:10px 20px; background:#062d55; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Imprimir / Salvar PDF</button>
+    <div class="header">
+        <div>
+            <span style="font-size:12px; font-weight:bold; color:#1c9b98;">SISTER-COMPRAS · MANIFESTO DE AQUISIÇÃO</span>
+            <h1>Lista Oficial de Compras do Projeto</h1>
+        </div>
+        <div style="text-align:right;">
+            <strong>Data: 2026-07-29</strong>
+        </div>
+    </div>
+    
+    <div class="meta">
+        <strong>Projeto:</strong> {project.get('name')} ({project.get('id')})<br>
+        <strong>Pesquisador Responsável:</strong> {project.get('lead_researcher')}<br>
+        <strong>Formato de Integração:</strong> Manifesto por Contrato (v0.2.0)
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Item / Especificação</th>
+                <th>Categoria</th>
+                <th>Fornecedor Aprovado</th>
+                <th>Qtd</th>
+                <th>Vl. Unitário</th>
+                <th>Subtotal</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {items_rows}
+        </tbody>
+    </table>
+
+    <div class="total-box">
+        ORÇAMENTO TOTAL APROVADO: R$ {total_budget:,.2f}
+    </div>
+
+    <div class="signatures">
+        <div>
+            <div class="sig-line">{project.get('lead_researcher')}</div>
+            Pesquisador Responsável (Aprovação Técnica)
+        </div>
+        <div>
+            <div class="sig-line">Gestão de Suprimentos / Aquisições</div>
+            Departamento de Compras e Licitações
+        </div>
+    </div>
+</body>
+</html>"""
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -103,6 +227,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 "default": "qwen2.5:14b" if "qwen2.5:14b" in models else (models[0] if models else "qwen2.5:14b")
             }
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+            return
+        elif self.path == '/api/reports/shopping-list':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            data = load_data()
+            html = generate_print_html(data)
+            self.wfile.write(html.encode('utf-8'))
             return
         return super().do_GET()
 
@@ -135,6 +267,26 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "success", "need": payload}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        elif self.path == '/api/needs/status':
+            need_id = payload.get('need_id')
+            new_status = payload.get('status', 'Adquirida')
+            found = False
+            for need in data.get('needs', []):
+                if need['id'] == need_id:
+                    need['status'] = new_status
+                    found = True
+                    break
+            if found:
+                save_data(data)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success"}, ensure_ascii=False).encode('utf-8'))
+            else:
+                self.send_error(404, "Necessidade nao encontrada")
             return
 
         elif self.path == '/api/alternatives':
@@ -208,6 +360,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/ollama/analyze':
             need_id = payload.get('need_id')
             model_name = payload.get('model', 'qwen2.5:14b')
+            mode = payload.get('mode', 'analyze')
             target_need = None
             for need in data.get('needs', []):
                 if need['id'] == need_id:
@@ -218,7 +371,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(404, "Necessidade nao encontrada para analise")
                 return
 
-            analysis_text = generate_ollama_analysis(model_name, target_need)
+            analysis_text = generate_ollama_analysis(model_name, target_need, mode=mode)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -227,6 +380,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             res = {
                 "need_id": need_id,
                 "model": model_name,
+                "mode": mode,
                 "analysis": analysis_text
             }
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))

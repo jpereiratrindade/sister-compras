@@ -32,6 +32,8 @@ enum class NeedStatus {
     Specified,
     InAnalysis,
     Decided,
+    Purchased,
+    Delivered,
     Fulfilled,
     Cancelled
 };
@@ -42,6 +44,8 @@ inline std::string needStatusToString(NeedStatus status) {
         case NeedStatus::Specified: return "Especificada";
         case NeedStatus::InAnalysis: return "Em analise";
         case NeedStatus::Decided: return "Decidida";
+        case NeedStatus::Purchased: return "Adquirida";
+        case NeedStatus::Delivered: return "Entregue";
         case NeedStatus::Fulfilled: return "Atendida";
         case NeedStatus::Cancelled: return "Cancelada";
     }
