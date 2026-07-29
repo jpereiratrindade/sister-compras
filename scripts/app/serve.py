@@ -28,27 +28,25 @@ def generate_ollama_intent(model_name, user_message, history, current_context_da
     system_prompt = """Você é o Assistente RAG de Inteligência do SisTer-Compras com ACESSO AO HISTÓRICO COMPLETO DA CONVERSA e ao Banco de Dados.
 Sua missão é extrair E MANTER acumulados todos os dados informados pelo usuário ao longo de TODAS AS MENSAGENS da conversa (Multi-Turn Chat).
 
-REGRAS RAG & ACÚMULO DE PARÂMETROS:
-1. LEIA O HISTÓRICO COMPLETO DA CONVERSA para não perder o título, quantidade, prioridade ou valores informados em mensagens anteriores.
-2. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
-3. Se o usuário escolher ou mencionar uma prioridade ("Essencial", "Alta", "Média", "Baixa"), GRAVE ESSE VALOR NA CHAVE "priority".
-4. Se o responsável não for mencionado explicitamente, PREENCHA COM "Equipe de Pesquisa" por padrão.
-5. Se todos os dados necessários estiverem acumulados (título, categoria e prioridade para nova necessidade), responda com "action": "create_need".
-6. Se ainda faltarem a Categoria ou a Prioridade, responda com "action": "ask_clarification", traga a pergunta na "explanation" e a lista de opções na chave "options".
+REGRAS RAG, CRIAÇÃO E EDIÇÃO DE REGISTROS:
+1. CONSULTE O BANCO DE DADOS (RAG): Se a instrução do usuário se referir a um registro QUE JÁ EXISTE NO BANCO DE DADOS (ex: "NED-002" ou "cooler do RPi 5") e o usuário quiser alterar, incluir orçamento ou atualizar dados, RESPONDA COM "action": "update_need" E INCLUA O "need_id" DO REGISTRO EXISTENTE. NÃO CRIE UM NOVO REGISTRO DUPLICADO SE ELE JÁ EXISTIR NO BANCO!
+2. Se o usuário quiser cadastrar UMA NOVA NECESSIDADE que não existe no banco, responda com "action": "create_need".
+3. Ao cadastrar nova necessidade, peça proativamente o Orçamento Estimado (R$) se não for informado, utilizando "action": "ask_clarification".
+4. Se o usuário informar um valor monetário em português (ex: "80,00", "R$ 80", "80 reais"), CONVERTA AUTOMATICAMENTE PARA FLOAT (ex: 80.0) na chave "estimated_budget" ou "price".
 
 RETORNE EXATAMENTE UM JSON NO SEGUINTE FORMATO SEM TEXTO ADICIONAL:
 {
-  "action": "create_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
-  "explanation": "Descrição clara ou pergunta de esclarecimento sobre dados faltantes",
+  "action": "create_need" | "update_need" | "add_quote" | "make_decision" | "update_status" | "ask_clarification",
+  "explanation": "Descrição clara para o usuário ou pergunta de esclarecimento sobre dados faltantes",
   "options": ["Opção 1", "Opção 2"],
   "params": {
+    "need_id": "NED-002",
     "title": "...",
     "category": "Energia & Infraestrutura" | "Equipamentos Científicos" | "Componentes Eletrônicos" | "Consumo & Reativos" | "Serviços & Licenças",
     "quantity": 1,
     "priority": "Essencial" | "Alta" | "Média" | "Baixa",
     "responsible": "Equipe de Pesquisa",
     "estimated_budget": 80.0,
-    "need_id": "NED-001",
     "supplier": "...",
     "price": 0.0,
     "selected_alternative_id": "ALT-01",
@@ -354,6 +352,29 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "success", "need": payload}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        elif self.path == '/api/needs/update':
+            need_id = payload.get('need_id')
+            found = False
+            for need in data.get('needs', []):
+                if need['id'] == need_id:
+                    if 'title' in payload and payload['title']: need['title'] = payload['title']
+                    if 'category' in payload and payload['category']: need['category'] = payload['category']
+                    if 'quantity' in payload and payload['quantity']: need['quantity'] = payload['quantity']
+                    if 'priority' in payload and payload['priority']: need['priority'] = payload['priority']
+                    if 'estimated_budget' in payload and payload['estimated_budget']: need['estimated_budget'] = float(payload['estimated_budget'])
+                    found = True
+                    break
+            if found:
+                db_manager.save_data(data)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success"}, ensure_ascii=False).encode('utf-8'))
+            else:
+                self.send_error(404, "Necessidade nao encontrada para atualizacao")
             return
 
         elif self.path == '/api/needs/status':

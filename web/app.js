@@ -246,6 +246,11 @@ document.addEventListener('DOMContentLoaded', () => {
       detailsHtml = `<strong>Título:</strong> ${params.title || 'N/A'}<br>
                      <strong>Categoria:</strong> ${params.category || 'Equipamentos Científicos'} | <strong>Quantidade:</strong> ${params.quantity || 1}<br>
                      <strong>Prioridade:</strong> ${params.priority || 'Essencial'}${estBudget}`;
+    } else if (action === 'update_need') {
+      actionLabel = `Atualizar Necessidade Existente [${params.need_id || 'NED-001'}]`;
+      const estBudget = params.estimated_budget ? ` | <strong>Novo Orçamento Est.:</strong> R$ ${params.estimated_budget.toFixed(2)}` : '';
+      detailsHtml = `<strong>ID:</strong> ${params.need_id || 'NED-001'}<br>
+                     <strong>Título:</strong> ${params.title || 'Inalterado'}${estBudget}`;
     } else if (action === 'add_quote') {
       actionLabel = 'Adicionar Cotação / Alternativa';
       detailsHtml = `<strong>Necessidade:</strong> ${params.need_id || 'NED-001'}<br>
@@ -296,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let targetUrl = '/api/needs';
       let bodyPayload = params;
 
+      if (action === 'update_need') targetUrl = '/api/needs/update';
       if (action === 'add_quote') targetUrl = '/api/alternatives';
       if (action === 'make_decision') targetUrl = '/api/decisions';
       if (action === 'update_status') targetUrl = '/api/needs/status';
