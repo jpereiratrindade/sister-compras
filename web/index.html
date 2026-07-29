@@ -355,10 +355,14 @@
             </select>
           </label>
           <label>
-            Responsável
-            <input type="text" name="responsible" required value="Equipe de Pesquisa">
+            Orçamento Estimado (R$ / unidade)
+            <input type="number" step="0.01" name="estimated_budget" placeholder="0.00">
           </label>
         </div>
+        <label>
+          Equipe / Pesquisador Responsável
+          <input type="text" name="responsible" required value="Equipe de Pesquisa">
+        </label>
       </div>
       <div class="dialog-foot">
         <button type="button" class="secondary-action close-modal">Cancelar</button>

@@ -520,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         category: formData.get('category'),
         quantity: parseInt(formData.get('quantity'), 10),
         priority: formData.get('priority'),
+        estimated_budget: parseFloat(formData.get('estimated_budget') || 0),
         responsible: formData.get('responsible')
       };
 
