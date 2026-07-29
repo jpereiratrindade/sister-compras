@@ -817,25 +817,21 @@ h1 {
 
 .system-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
 }
 
 .system-card {
   position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    "mark identity status"
-    "mark description description"
-    ". data-reference data-reference"
-    ". climate-snapshot climate-snapshot"
-    ". actions actions";
-  gap: 7px 12px;
-  min-height: 150px;
-  padding: 15px;
-  border-radius: 9px;
-  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 140px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--shadow);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 

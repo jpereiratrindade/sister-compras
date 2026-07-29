@@ -7,6 +7,7 @@ import urllib.error
 import sys
 import os
 import json
+import re
 from db_repository import db_manager
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8002
@@ -333,7 +334,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         data = db_manager.load_data()
 
         if self.path == '/api/needs':
-            new_id = f"NED-00{len(data.get('needs', [])) + 1}"
+            existing_nums = []
+            for n in data.get('needs', []):
+                nid = n.get('id', '')
+                match = re.search(r'NED-(\d+)', nid)
+                if match:
+                    existing_nums.append(int(match.group(1)))
+            next_num = (max(existing_nums) + 1) if existing_nums else 1
+            new_id = f"NED-{next_num:03d}"
+
             payload['id'] = new_id
             payload['project_id'] = data['projects'][0]['id'] if data.get('projects') else 'PROJ-PESQUISA-01'
             payload['status'] = 'Especificada'
@@ -426,10 +435,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/alternatives':
             need_id = payload.get('need_id')
             need_found = False
+            
+            existing_nums = []
+            for n in data.get('needs', []):
+                for a in n.get('alternatives', []):
+                    aid = a.get('id', '')
+                    match = re.search(r'ALT-(\d+)', aid)
+                    if match:
+                        existing_nums.append(int(match.group(1)))
+            next_num = (max(existing_nums) + 1) if existing_nums else 1
+            alt_id = f"ALT-{next_num:02d}"
+
             for need in data.get('needs', []):
                 if need['id'] == need_id:
                     need_found = True
-                    alt_id = f"ALT-0{len(need.get('alternatives', [])) + 1}"
                     alt_item = {
                         "id": alt_id,
                         "need_id": need_id,
@@ -466,7 +485,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == '/api/decisions':
             need_id = payload.get('need_id')
-            dec_id = f"DEC-00{len(data.get('decisions', [])) + 1}"
+            existing_nums = []
+            for d in data.get('decisions', []):
+                did = d.get('id', '')
+                match = re.search(r'DEC-(\d+)', did)
+                if match:
+                    existing_nums.append(int(match.group(1)))
+            next_num = (max(existing_nums) + 1) if existing_nums else 1
+            dec_id = f"DEC-{next_num:03d}"
+
             dec_item = {
                 "id": dec_id,
                 "need_id": need_id,

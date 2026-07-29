@@ -694,15 +694,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const estBudgetCard = need.estimated_budget && need.estimated_budget > 0 ? ` · <strong>Orçamento Est.:</strong> R$ ${need.estimated_budget.toFixed(2)}` : '';
-      const descCard = need.description ? `<p style="font-size:0.8rem; color:var(--muted); margin-top:4px; margin-bottom:6px;"><em>${need.description}</em></p>` : '';
+      const descCard = need.description ? `<div style="font-size:0.81rem; color:var(--muted); line-height:1.45; word-break:break-word; background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0; margin:4px 0;"><strong>Descrição Técnica:</strong> ${need.description}</div>` : '';
 
       card.innerHTML = `
-        <div class="system-card-head">
-          <div>
-            <h4>${need.title}</h4>
-            <p><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}${estBudgetCard}</p>
+        <div class="system-card-head" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div style="flex:1; min-width:0;">
+            <h4 style="margin:0; font-size:0.95rem; color:var(--navy); word-break:break-word;">${need.title}</h4>
+            <p style="margin:2px 0 0; font-size:0.78rem; color:var(--muted);"><strong>Código:</strong> ${need.id} · <strong>Categoria:</strong> ${need.category}${estBudgetCard}</p>
           </div>
-          <div style="display:flex; align-items:center; gap:6px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
             <button type="button" class="ai-button" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ Analisar com IA</button>
             <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
             <button type="button" class="secondary-action" style="padding:4px 8px; font-size:0.72rem; color:var(--red);" onclick="deleteNeed('${need.id}')">🗑️ Excluir</button>
@@ -710,9 +710,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         ${descCard}
-        <div class="system-card-meta">
-          <span>Quantidade: ${need.quantity} | Prioridade: ${need.priority}</span>
-          <span>Responsável: ${need.responsible}</span>
+        <div class="system-card-meta" style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--muted); border-top:1px solid #e2e8f0; padding-top:8px; margin-top:auto;">
+          <span><strong>Qtd:</strong> ${need.quantity} | <strong>Prioridade:</strong> ${need.priority}</span>
+          <span><strong>Responsável:</strong> ${need.responsible}</span>
         </div>
         ${alternativesHtml}
       `;
