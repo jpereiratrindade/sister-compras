@@ -19,7 +19,8 @@
       "quantity": 2,
       "priority": "Essencial",
       "status": "Decidida",
-      "responsible": "Equipe de Infraestrutura"
+      "responsible": "Equipe de Infraestrutura",
+      "estimated_budget": 80.0
     }
   ],
   "decisions": [
