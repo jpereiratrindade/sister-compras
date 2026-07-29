@@ -62,25 +62,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Global functions for decision modal opening
+  window.openDecisionModal = function(targetNeedId = null) {
+    populateNeedSelects(targetNeedId);
+    if (modalDecision) modalDecision.showModal();
+  };
+
+  window.openAlternativeModal = function(targetNeedId = null) {
+    populateNeedSelects(targetNeedId);
+    if (modalAlternative) modalAlternative.showModal();
+  };
+
   // Modal controls
   if (btnOpenNeed) btnOpenNeed.addEventListener('click', () => modalNeed.showModal());
   if (btnOpenNeed2) btnOpenNeed2.addEventListener('click', () => modalNeed.showModal());
-  if (btnOpenAlt) btnOpenAlt.addEventListener('click', () => {
-    populateNeedSelects();
-    modalAlternative.showModal();
-  });
-  if (btnOpenAlt2) btnOpenAlt2.addEventListener('click', () => {
-    populateNeedSelects();
-    modalAlternative.showModal();
-  });
-  if (btnOpenDec) btnOpenDec.addEventListener('click', () => {
-    populateNeedSelects();
-    modalDecision.showModal();
-  });
-  if (btnOpenDec2) btnOpenDec2.addEventListener('click', () => {
-    populateNeedSelects();
-    modalDecision.showModal();
-  });
+  if (btnOpenAlt) btnOpenAlt.addEventListener('click', () => window.openAlternativeModal());
+  if (btnOpenAlt2) btnOpenAlt2.addEventListener('click', () => window.openAlternativeModal());
+  if (btnOpenDec) btnOpenDec.addEventListener('click', () => window.openDecisionModal());
+  if (btnOpenDec2) btnOpenDec2.addEventListener('click', () => window.openDecisionModal());
   if (btnOpenChat) btnOpenChat.addEventListener('click', () => modalChat.showModal());
 
   document.querySelectorAll('.close-modal').forEach(btn => {
@@ -163,6 +162,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function updateAlternativesDropdown() {
+    const selDec = document.getElementById('select-need-for-dec');
+    const selAltDec = document.getElementById('select-alt-for-dec');
+    if (!selDec || !selAltDec || !currentData || !currentData.needs) return;
+
+    selAltDec.innerHTML = '';
+    const selectedNeedId = selDec.value;
+    const need = currentData.needs.find(n => n.id === selectedNeedId);
+
+    if (need && need.alternatives && need.alternatives.length > 0) {
+      need.alternatives.forEach(alt => {
+        const opt = document.createElement('option');
+        opt.value = alt.id;
+        const priceText = alt.prices && alt.prices[0] ? ` (R$ ${alt.prices[0].unit_price.toFixed(2)})` : '';
+        opt.textContent = `${alt.id}: ${alt.title}${priceText} — ${alt.supplier_or_source || 'N/A'}`;
+        selAltDec.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement('option');
+      opt.value = 'ALT-ESTIMADO';
+      opt.textContent = 'Aprovação por Orçamento Estimado (Especificação Técnica Aprovada)';
+      selAltDec.appendChild(opt);
+    }
+  }
+
   function populateNeedSelects(targetNeedId = null) {
     const selAlt = document.getElementById('select-need-for-alt');
     const selDec = document.getElementById('select-need-for-dec');
@@ -184,6 +208,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetNeedId && need.id === targetNeedId) opt2.selected = true;
       selDec.appendChild(opt2);
     });
+
+    selDec.removeEventListener('change', updateAlternativesDropdown);
+    selDec.addEventListener('change', updateAlternativesDropdown);
+    updateAlternativesDropdown();
   }
 
   // Checkbox management for selective PDF export
@@ -580,8 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (textJustification && lastAiAnalysisText) {
         textJustification.value = lastAiAnalysisText;
         modalAi.close();
-        populateNeedSelects(lastAnalyzedNeedId);
-        modalDecision.showModal();
+        window.openDecisionModal(lastAnalyzedNeedId);
       }
     });
   }
@@ -804,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:2.4rem; margin-bottom:8px;">📋</div>
           <h3 style="margin:0 0 6px 0; color:var(--navy); font-size:1.1rem;">Nenhum Parecer Técnico Registrado</h3>
           <p style="margin:0 0 16px 0; font-size:0.85rem; color:var(--muted);">Registre a aprovação humana de uma cotação para formalizar o parecer técnico e gerar a trilha de auditoria.</p>
-          <button type="button" class="primary-action" onclick="populateNeedSelects(); document.getElementById('modal-decision').showModal();" style="display:inline-flex; align-items:center; gap:6px;">
+          <button type="button" class="primary-action" onclick="window.openDecisionModal();" style="display:inline-flex; align-items:center; gap:6px;">
             + Registrar Primeiro Parecer Técnico
           </button>
         </div>
