@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalEditNeed = document.getElementById('modal-edit-need');
   const modalAlternative = document.getElementById('modal-alternative');
   const modalDecision = document.getElementById('modal-decision');
+  const modalProject = document.getElementById('modal-project');
   const modalAi = document.getElementById('modal-ai-analysis');
   const modalChat = document.getElementById('modal-ai-chat');
 
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenAlt2 = document.getElementById('btn-open-alt-modal-2');
   const btnOpenDec = document.getElementById('btn-open-dec-modal');
   const btnOpenDec2 = document.getElementById('btn-open-dec-modal-2');
+  const btnOpenProject = document.getElementById('btn-open-project-modal');
   const btnOpenChat = document.getElementById('btn-open-chat-modal');
   const btnCopyAi = document.getElementById('btn-copy-ai-suggestion');
   const btnAiSpecify = document.getElementById('btn-ai-specify-reqs');
@@ -38,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formEditNeed = document.getElementById('form-edit-need');
   const formAlt = document.getElementById('form-alternative');
   const formDec = document.getElementById('form-decision');
+  const formProject = document.getElementById('form-project');
   const formChatSend = document.getElementById('form-chat-send');
 
   const selectOllama = document.getElementById('select-ollama-model');
@@ -62,9 +65,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  function prefillLeadResearcherInForms() {
+    const leadName = (currentData && currentData.projects && currentData.projects[0] && currentData.projects[0].lead_researcher) ? currentData.projects[0].lead_researcher : 'José Pedro Trindade';
+
+    const responsibleInput = document.querySelector('form#form-need input[name="responsible"]');
+    if (responsibleInput && (!responsibleInput.value || responsibleInput.value === 'Equipe de Pesquisa')) {
+      responsibleInput.value = leadName;
+    }
+
+    const decidedByInput = document.querySelector('form#form-decision input[name="decided_by"]');
+    if (decidedByInput && (!decidedByInput.value || decidedByInput.value === 'Pesquisador Responsável')) {
+      decidedByInput.value = leadName;
+    }
+  }
+
   // Global functions for decision modal opening
   window.openDecisionModal = function(targetNeedId = null) {
     populateNeedSelects(targetNeedId);
+    prefillLeadResearcherInForms();
     if (modalDecision) modalDecision.showModal();
   };
 
@@ -73,14 +91,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalAlternative) modalAlternative.showModal();
   };
 
+  window.openNeedModal = function() {
+    prefillLeadResearcherInForms();
+    if (modalNeed) modalNeed.showModal();
+  };
+
   // Modal controls
-  if (btnOpenNeed) btnOpenNeed.addEventListener('click', () => modalNeed.showModal());
-  if (btnOpenNeed2) btnOpenNeed2.addEventListener('click', () => modalNeed.showModal());
+  if (btnOpenNeed) btnOpenNeed.addEventListener('click', () => window.openNeedModal());
+  if (btnOpenNeed2) btnOpenNeed2.addEventListener('click', () => window.openNeedModal());
   if (btnOpenAlt) btnOpenAlt.addEventListener('click', () => window.openAlternativeModal());
   if (btnOpenAlt2) btnOpenAlt2.addEventListener('click', () => window.openAlternativeModal());
   if (btnOpenDec) btnOpenDec.addEventListener('click', () => window.openDecisionModal());
   if (btnOpenDec2) btnOpenDec2.addEventListener('click', () => window.openDecisionModal());
   if (btnOpenChat) btnOpenChat.addEventListener('click', () => modalChat.showModal());
+
+  if (btnOpenProject) {
+    btnOpenProject.addEventListener('click', () => {
+      const proj = (currentData && currentData.projects && currentData.projects[0]) ? currentData.projects[0] : {};
+      const leadInput = document.getElementById('project-lead-researcher-input');
+      const nameInput = document.getElementById('project-name-input');
+
+      if (leadInput) leadInput.value = proj.lead_researcher || 'José Pedro Trindade';
+      if (nameInput) nameInput.value = proj.name || 'Projeto de Pesquisa e Desenvolvimento Tecnológico';
+
+      if (modalProject) modalProject.showModal();
+    });
+  }
 
   document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -255,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('edit-need-quantity').value = need.quantity || 1;
     document.getElementById('edit-need-priority').value = need.priority || 'Essencial';
     document.getElementById('edit-need-budget').value = need.estimated_budget || 0.0;
-    document.getElementById('edit-need-responsible').value = need.responsible || 'Equipe de Pesquisa';
+    document.getElementById('edit-need-responsible').value = need.responsible || (currentData.projects && currentData.projects[0] ? currentData.projects[0].lead_researcher : 'José Pedro Trindade');
     document.getElementById('edit-need-description').value = need.description || '';
 
     if (modalEditNeed) modalEditNeed.showModal();
@@ -310,6 +346,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (err) {
         console.error('Falha no envio da edição:', err);
+      }
+    });
+  }
+
+  // Submit Edição do Projeto & Pesquisador Responsável
+  if (formProject) {
+    formProject.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formProject);
+      const payload = {
+        lead_researcher: formData.get('lead_researcher'),
+        name: formData.get('name')
+      };
+
+      try {
+        const res = await fetch('/api/project/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          modalProject.close();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao atualizar dados do pesquisador responsável.');
+        }
+      } catch (err) {
+        console.error('Falha na atualização do projeto:', err);
       }
     });
   }
@@ -733,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
       projects: [{
         id: 'PROJ-PESQUISA-01',
         name: 'Projeto de Pesquisa e Desenvolvimento Tecnológico',
-        lead_researcher: 'Pesquisador Responsável'
+        lead_researcher: 'José Pedro Trindade'
       }],
       needs: [{
         id: 'NED-001',
@@ -743,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quantity: 2,
         priority: 'Essencial',
         status: 'Decidida',
-        responsible: 'Equipe de Infraestrutura',
+        responsible: 'José Pedro Trindade',
         description: 'PowerStation Portátil LiFePO4 de no mínimo 500Wh para autonomia em campo.'
       }],
       decisions: [{
@@ -751,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
         need_id: 'NED-001',
         selected_alternative_id: 'ALT-01',
         technical_justification: 'A alternativa ALT-01 cumpre o requisito mandatório de 500Wh (possui 614Wh) e apresenta case estanque IP65 adequado ao ambiente de operação.',
-        decided_by: 'Pesquisador Responsável',
+        decided_by: 'José Pedro Trindade',
         decision_date: '2026-07-29'
       }]
     };
@@ -798,7 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><strong>${estBudgetStr}</strong></td>
         <td><span class="status-pill degraded">${need.priority}</span></td>
         <td><span class="status-pill healthy">${need.status}</span></td>
-        <td><small style="color:var(--muted);">${need.responsible}</small></td>
+        <td><small style="color:var(--muted); font-weight:600;">${need.responsible}</small></td>
         <td style="white-space:nowrap;">
           <button type="button" class="ai-button" style="padding:3px 7px; font-size:0.7rem;" onclick="triggerAiAnalysis('${need.id}')" title="Analisar com IA local (qwen2.5:14b)">⚡ IA</button>
           <button type="button" class="secondary-action" style="padding:3px 6px; font-size:0.7rem;" onclick="openEditNeedModal('${need.id}')">✏️ Editar</button>
@@ -905,8 +969,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderData(data) {
     const project = data.projects && data.projects[0];
     if (project) {
-      document.getElementById('project-header-info').textContent =
-        `Projeto: ${project.name} (${project.id}) · Responsável: ${project.lead_researcher}`;
+      const headerEl = document.getElementById('project-header-info');
+      if (headerEl) {
+        headerEl.textContent = `Projeto: ${project.name} (${project.id}) · Pesquisador: ${project.lead_researcher || 'José Pedro Trindade'}`;
+      }
     }
 
     const needs = data.needs || [];

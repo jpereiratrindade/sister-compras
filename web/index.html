@@ -91,7 +91,10 @@
           <div>
             <span class="eyebrow">Painel do Pesquisador</span>
             <h2>Gestão de Recursos de Pesquisa</h2>
-            <p id="project-header-info">Carregando informações do projeto...</p>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <p id="project-header-info" style="margin:0;">Carregando informações do projeto...</p>
+              <button type="button" class="secondary-action" id="btn-open-project-modal" style="padding:2px 8px; font-size:0.72rem; cursor:pointer;" title="Editar Pesquisador Responsável">✏️ Editar Pesquisador</button>
+            </div>
           </div>
           <div class="action-button-group">
             <button class="primary-action" type="button" id="btn-open-need-modal">
@@ -565,8 +568,28 @@
       </form>
     </div>
     <div class="dialog-foot">
-      <button type="button" class="secondary-action close-modal">Fechar Chat</button>
-    </div>
+  <!-- Modal de Edição do Projeto & Pesquisador Responsável -->
+  <dialog id="modal-project" class="system-dialog">
+    <form id="form-project" method="dialog">
+      <div class="dialog-head">
+        <h3>Configuração do Pesquisador Responsável</h3>
+        <button type="button" class="dialog-close close-modal">&times;</button>
+      </div>
+      <div class="form-body">
+        <label>
+          Nome do Pesquisador Responsável
+          <input type="text" id="project-lead-researcher-input" name="lead_researcher" required placeholder="Ex: José Pedro Trindade">
+        </label>
+        <label>
+          Nome Oficial do Projeto de Pesquisa
+          <input type="text" id="project-name-input" name="name" required placeholder="Ex: Projeto de Pesquisa e Desenvolvimento Tecnológico">
+        </label>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="secondary-action close-modal">Cancelar</button>
+        <button type="submit" class="primary-action">Salvar Configuração</button>
+      </div>
+    </form>
   </dialog>
 
   <script src="./app.js"></script>

@@ -518,6 +518,32 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "success", "decision": dec_item}, ensure_ascii=False).encode('utf-8'))
             return
 
+        elif self.path == '/api/project/update':
+            lead_researcher = payload.get('lead_researcher', '').strip()
+            project_name = payload.get('name', '').strip()
+            
+            if not data.get('projects'):
+                data['projects'] = [{
+                    "id": "PROJ-PESQUISA-01",
+                    "name": project_name or "Projeto de Pesquisa e Desenvolvimento Tecnológico",
+                    "lead_researcher": lead_researcher or "Pesquisador Responsável"
+                }]
+            else:
+                if lead_researcher:
+                    data['projects'][0]['lead_researcher'] = lead_researcher
+                if project_name:
+                    data['projects'][0]['name'] = project_name
+            
+            # Sincronizar PostgreSQL e storage JSON
+            db_manager.save_data(data)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "project": data['projects'][0]}, ensure_ascii=False).encode('utf-8'))
+            return
+
         elif self.path == '/api/ollama/intent':
             user_message = payload.get('message', '')
             history = payload.get('history', [])
