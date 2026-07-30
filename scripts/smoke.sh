@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL="${NEXO_COMPRAS_BASE_URL:-http://127.0.0.1:8016}"
 headers=(
   -H "X-Sister-Subject: smoke-test"
@@ -46,6 +47,7 @@ value = json.loads(sys.argv[1])
 assert value["contract_version"] == "1.0.0"
 assert value["system_id"] == "sister_nexo"
 assert value["project"]["project_id"]
+assert all("seg_code" in project for project in value["projects"])
 assert isinstance(value["research_activities"], list)
 assert isinstance(value["operational_activities"], list)
 ' "$context_body"
@@ -59,9 +61,16 @@ grep -q "<title>Nexo-Compras" <<<"$page"
 grep -q 'nexo-compras.profile/1.0.0' <<<"$page"
 grep -q 'id="need-project-select"' <<<"$page"
 grep -q 'id="edit-need-project"' <<<"$page"
-grep -q '20260730-parent-navigation' <<<"$page"
+grep -q '20260730-visible-project-scope' <<<"$page"
 grep -q 'class="mini-brand" href="./"' <<<"$page"
 grep -q 'class="nav-link nav-parent-link" href="../#dashboard"' <<<"$page"
+grep -q 'Filtrar somente a visão geral por projeto' <<<"$page"
+grep -q 'Lista Geral de Compras' <<<"$page"
+grep -q 'renderNeedsTable(allNeeds)' "$ROOT_DIR/web/app.js"
+grep -q 'renderDecisionsTimeline(allDecisions, allNeeds)' \
+  "$ROOT_DIR/web/app.js"
+! grep -q "localStorage.getItem('nexo_compras_view_project_id_v2')" \
+  "$ROOT_DIR/web/app.js"
 python3 -c '
 from html.parser import HTMLParser
 import sys

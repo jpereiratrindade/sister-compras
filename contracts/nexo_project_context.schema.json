@@ -51,6 +51,11 @@
           "type": ["string", "null"],
           "description": "Rótulo compacto para navegação; name permanece o título oficial."
         },
+        "seg_code": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{2}\\.[0-9]{2}\\.[0-9]{2}\\.[0-9]{3}\\.[0-9]{2}\\.[0-9]{2}$",
+          "description": "Código SEG institucional opcional para projetos Embrapa."
+        },
         "status": {"type": "string"}
       }
     }

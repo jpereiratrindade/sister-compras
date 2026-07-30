@@ -52,8 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentData = null;
   let currentAgreement = null;
   let currentNexoContext = null;
-  let currentProjectId =
-    localStorage.getItem('nexo_compras_view_project_id_v2') || '';
+  let currentProjectId = '';
+  localStorage.removeItem('nexo_compras_view_project_id_v2');
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
   let chatHistoryList = [];
@@ -109,13 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
       editNeedSelect.innerHTML =
         '<option value="">Selecione um projeto</option>' + options;
     }
-    const query = currentProjectId
-      ? `?project_id=${encodeURIComponent(currentProjectId)}` : '';
     const reportLink = document.getElementById('shopping-report-link');
     const rawLink = document.getElementById('raw-data-link');
     if (reportLink) reportLink.href =
-      apiUrl(`/api/reports/shopping-list${query}`);
-    if (rawLink) rawLink.href = apiUrl(`/api/data${query}`);
+      apiUrl('/api/reports/shopping-list');
+    if (rawLink) rawLink.href = apiUrl('/api/data');
   }
 
   // Tab switching
@@ -469,9 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const ids = Array.from(checked).map(c => c.dataset.needId).join(',');
       window.open(apiUrl(
-        `/api/reports/shopping-list?project_id=${
-          encodeURIComponent(currentProjectId)
-        }&ids=${encodeURIComponent(ids)}`), '_blank');
+        `/api/reports/shopping-list?ids=${encodeURIComponent(ids)}`), '_blank');
     });
   }
 
@@ -1181,6 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div>
           <span style="font-size:0.78rem; font-weight:bold; color:var(--teal); text-transform:uppercase;">Necessidade Vinculada</span>
           <h4 style="margin:2px 0 0 0; font-size:1.05rem; color:var(--navy); font-weight:700;">${need.id} — ${need.title}</h4>
+          <small style="color:var(--muted);">Projeto: ${escapeHtml(need.project_id || 'Sem atribuição')}</small>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; font-size:0.83rem;">
@@ -1206,12 +1203,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderData(data) {
     const allNeeds = data.needs || [];
-    const needs = currentProjectId
+    const dashboardNeeds = currentProjectId
       ? allNeeds.filter(need => need.project_id === currentProjectId)
       : allNeeds;
-    const visibleNeedIds = new Set(needs.map(need => need.id));
-    const decisions = (data.decisions || []).filter(decision =>
-      visibleNeedIds.has(decision.need_id));
+    const allDecisions = data.decisions || [];
+    const dashboardNeedIds = new Set(
+      dashboardNeeds.map(need => need.id));
+    const dashboardDecisions = allDecisions.filter(decision =>
+      dashboardNeedIds.has(decision.need_id));
     const project = currentProjectId
       ? (data.projects || []).find(item => item.id === currentProjectId)
       : null;
@@ -1232,18 +1231,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const decisionMap = {};
-    decisions.forEach(d => { decisionMap[d.need_id] = d; });
+    allDecisions.forEach(d => { decisionMap[d.need_id] = d; });
 
-    // Update metrics
-    document.getElementById('metric-needs-count').textContent = needs.length;
-    document.getElementById('metric-decisions-count').textContent = decisions.length;
-    document.getElementById('metric-pending-count').textContent = Math.max(0, needs.length - decisions.length);
+    // A seleção por projeto pertence somente à Visão Geral, onde é visível.
+    document.getElementById('metric-needs-count').textContent =
+      dashboardNeeds.length;
+    document.getElementById('metric-decisions-count').textContent =
+      dashboardDecisions.length;
+    document.getElementById('metric-pending-count').textContent =
+      Math.max(0, dashboardNeeds.length - dashboardDecisions.length);
 
     // Render Needs System Cards
     const container = document.getElementById('needs-list-container');
     container.innerHTML = '';
 
-    needs.forEach(need => {
+    dashboardNeeds.forEach(need => {
       const card = document.createElement('article');
       card.className = 'system-card';
       
@@ -1301,10 +1303,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Render Needs Table with Filters
-    renderNeedsTable(needs);
+    renderNeedsTable(allNeeds);
 
     // Render Decisions Timeline with Interactive Cards & Search
-    renderDecisionsTimeline(decisions, needs);
+    renderDecisionsTimeline(allDecisions, allNeeds);
 
     // Render Shopping List Tab
     let totalBudget = 0.0;
@@ -1313,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shoppingTableBody = document.getElementById('shopping-table-body');
     shoppingTableBody.innerHTML = '';
 
-    needs.forEach(need => {
+    allNeeds.forEach(need => {
       const dec = decisionMap[need.id];
       if (need.status === 'Adquirida') purchasedCount++;
       if (need.status === 'Entregue') deliveredCount++;
@@ -1344,6 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td style="text-align:center;"><input type="checkbox" class="shopping-item-check" data-need-id="${need.id}"></td>
         <td><strong>${need.id}</strong></td>
         <td>${need.title}<br><small style="color:var(--muted);">${altTitle}</small></td>
+        <td><small style="color:var(--muted); font-weight:600;">${escapeHtml(need.project_id || 'Sem atribuição')}</small></td>
         <td>${need.category}</td>
         <td>${need.quantity}</td>
         <td><strong>${subtotalDisplay}</strong></td>
@@ -1363,7 +1366,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSelectedCount();
 
     document.getElementById('shopping-total-budget').textContent = `R$ ${totalBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-    document.getElementById('shopping-items-count').textContent = decisions.length;
+    document.getElementById('shopping-items-count').textContent =
+      allDecisions.length;
     document.getElementById('shopping-purchased-count').textContent = purchasedCount;
     document.getElementById('shopping-delivered-count').textContent = deliveredCount;
   }
@@ -1375,8 +1379,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('active-project-select')?.addEventListener(
     'change', async event => {
       currentProjectId = event.currentTarget.value;
-      localStorage.setItem(
-        'nexo_compras_view_project_id_v2', currentProjectId);
       renderProjectSelectors();
       if (currentData) renderData(currentData);
     }

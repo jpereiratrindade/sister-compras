@@ -12,6 +12,8 @@ O SisTer Nexo é a autoridade para projetos, ações e atividades de pesquisa.
 Este produto integra-se a ele como contexto especializado, recebendo
 referências dessas atividades e devolvendo estados resumidos de necessidades,
 decisões e atendimento.
+Os metadados recebidos incluem título oficial, nome curto e, quando aplicável a
+um projeto Embrapa, o Código SEG institucional.
 
 **Nexo-Compras** é o nome de produto integrado; o identificador técnico
 `sister_compras` é preservado por compatibilidade.
@@ -93,6 +95,12 @@ Acesse pelo SisTer autenticado em:
 A marca **Nexo-Compras**, no canto superior esquerdo, retorna à visão geral do
 Compras. A ação **Voltar ao Nexo**, separada ao fim da navegação lateral,
 restabelece explicitamente o contexto do subsistema integrador.
+
+A seleção de projeto da **Visão Geral** contextualiza somente seus indicadores
+e cartões. As abas **Necessidades**, **Decisões** e **Lista de Compras**, assim
+como suas exportações, sempre apresentam o acervo completo e identificam o
+projeto em cada registro; nenhum filtro de projeto é persistido ou aplicado
+silenciosamente entre abas.
 
 A origem `http://127.0.0.1:8016` permanece em loopback e recusa acesso sem a
 identidade federada. O acervo operacional autenticado é listado integralmente

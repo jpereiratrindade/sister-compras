@@ -105,8 +105,9 @@
             <h2>Gestão de Recursos de Pesquisa</h2>
             <div style="display:flex; align-items:center; gap:8px;">
               <p id="project-header-info" style="margin:0;">Carregando acervo do Compras...</p>
-              <label>Visualização
-                <select id="active-project-select" aria-label="Filtrar por projeto"></select>
+              <label>Visão geral
+                <select id="active-project-select"
+                  aria-label="Filtrar somente a visão geral por projeto"></select>
               </label>
               <a class="secondary-action" href="../#equipe"
                 style="padding:2px 8px; font-size:0.72rem; text-decoration:none;">
@@ -268,8 +269,8 @@
         <div class="page-heading">
           <div>
             <span class="eyebrow">Consolidação Orçamentária</span>
-            <h2>Lista Oficial de Compras do Projeto</h2>
-            <p>Relatório de aquisição e gestão de entrega dos recursos aprovados.</p>
+            <h2>Lista Geral de Compras</h2>
+            <p>Acervo multiprojeto para aquisição e gestão de entrega dos recursos aprovados.</p>
           </div>
           <div class="action-button-group">
             <button type="button" class="primary-action" id="btn-print-selected-shopping">
@@ -318,6 +319,7 @@
                       title="Selecionar Todos"></th>
                   <th>Código</th>
                   <th>Necessidade / Item Aprovado</th>
+                  <th>Projeto</th>
                   <th>Categoria</th>
                   <th>Qtd</th>
                   <th>Subtotal (R$)</th>
@@ -687,7 +689,7 @@
     </form>
   </dialog>
 
-  <script src="./app.js?v=20260730-parent-navigation"></script>
+  <script src="./app.js?v=20260730-visible-project-scope"></script>
 </body>
 
 </html>
