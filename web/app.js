@@ -63,6 +63,20 @@ document.addEventListener('DOMContentLoaded', () => {
     .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+  const projectLabel = project =>
+    String(project?.short_name || project?.project_id ||
+      project?.id || 'Projeto').trim();
+
+  const projectOptionLabel = project => {
+    const label = projectLabel(project);
+    return label === project.project_id
+      ? label : `${label} · ${project.project_id}`;
+  };
+
+  const contextProjectById = projectId =>
+    (currentNexoContext?.projects || []).find(project =>
+      (project.procurement_project_id || project.project_id) === projectId);
+
   function renderProjectSelectors() {
     const projects = currentNexoContext?.projects || [];
     const comprasProjectId = project =>
@@ -74,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const options = projects.map(project =>
       `<option value="${escapeHtml(comprasProjectId(project))}"${
         comprasProjectId(project) === currentProjectId ? ' selected' : ''
-      }>${escapeHtml(project.name)} · ${escapeHtml(project.project_id)}</option>`
+      } title="${escapeHtml(project.name)}">${
+        escapeHtml(projectOptionLabel(project))}</option>`
     ).join('');
     const activeSelect = document.getElementById('active-project-select');
     const needSelect = document.getElementById('need-project-select');
@@ -169,8 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('nexo-project-context-list').innerHTML =
       (currentNexoContext?.projects || []).map(project => `<article>
-        <div><strong>${escapeHtml(project.project_id)}</strong>
-          <span>${escapeHtml(project.name)}</span></div>
+        <div><strong title="${escapeHtml(project.name)}">${
+          escapeHtml(projectLabel(project))}</strong>
+          <span>${escapeHtml(project.name)}</span>
+          <small>${escapeHtml(project.project_id)}</small></div>
         <span class="status-pill">${escapeHtml(project.status)}</span>
       </article>`).join('') ||
       'Nenhum metadado de projeto recebido.';
@@ -514,9 +531,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const payload = {
         need_id: formData.get('need_id'),
         project_id: formData.get('project_id'),
-        project_name: (currentNexoContext?.projects || []).find(project =>
-          (project.procurement_project_id || project.project_id) ===
-            formData.get('project_id'))?.name || '',
+        project_name: contextProjectById(formData.get('project_id'))
+          ? projectLabel(contextProjectById(formData.get('project_id'))) : '',
         title: formData.get('title'),
         category: formData.get('category'),
         quantity: parseInt(formData.get('quantity'), 10),
@@ -754,9 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let bodyPayload = {
         ...params,
         project_id: actionProjectId,
-        project_name: contextProjects.find(project =>
-          (project.procurement_project_id || project.project_id) ===
-            actionProjectId)?.name || ''
+        project_name: contextProjectById(actionProjectId)
+          ? projectLabel(contextProjectById(actionProjectId)) : ''
       };
 
       if (action === 'update_need') targetUrl = '/api/needs/update';
@@ -900,9 +915,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(formNeed);
       const payload = {
         project_id: formData.get('project_id'),
-        project_name: (currentNexoContext?.projects || []).find(project =>
-          (project.procurement_project_id || project.project_id) ===
-            formData.get('project_id'))?.name || '',
+        project_name: contextProjectById(formData.get('project_id'))
+          ? projectLabel(contextProjectById(formData.get('project_id'))) : '',
         title: formData.get('title'),
         category: formData.get('category'),
         quantity: parseInt(formData.get('quantity'), 10),
@@ -1201,10 +1215,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const project = currentProjectId
       ? (data.projects || []).find(item => item.id === currentProjectId)
       : null;
+    const nexoProject = currentProjectId
+      ? contextProjectById(currentProjectId) : null;
     const headerEl = document.getElementById('project-header-info');
     if (project) {
       if (headerEl) {
-        headerEl.textContent = `Projeto: ${project.name} (${project.id}) · Pesquisador: ${project.lead_researcher || 'José Pedro Trindade'}`;
+        headerEl.textContent = `Projeto: ${
+          projectLabel(nexoProject || project)
+        } (${project.id}) · Pesquisador: ${
+          project.lead_researcher || 'José Pedro Trindade'}`;
+        headerEl.title = nexoProject?.name || project.name || '';
       }
     } else if (headerEl) {
       headerEl.textContent =

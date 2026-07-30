@@ -59,7 +59,7 @@ grep -q "<title>Nexo-Compras" <<<"$page"
 grep -q 'nexo-compras.profile/1.0.0' <<<"$page"
 grep -q 'id="need-project-select"' <<<"$page"
 grep -q 'id="edit-need-project"' <<<"$page"
-grep -q '20260730-compras-catalog' <<<"$page"
+grep -q '20260730-project-labels' <<<"$page"
 python3 -c '
 from html.parser import HTMLParser
 import sys

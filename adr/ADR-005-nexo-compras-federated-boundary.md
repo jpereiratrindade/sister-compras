@@ -31,7 +31,8 @@ direto às tabelas, credenciais ou volumes do outro subsistema.
 
 Do Nexo para Compras:
 
-- identificadores e títulos mínimos do projeto e da atividade;
+- identificadores, título oficial e nome curto do projeto;
+- identificadores e títulos mínimos da atividade;
 - finalidade da necessidade;
 - sujeito autenticado e papel autorizado.
 

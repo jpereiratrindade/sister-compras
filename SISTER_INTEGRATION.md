@@ -89,6 +89,11 @@ referências de atividades científicas e operacionais. O Compras exibe esses
 metadados como referências externas e nunca os trata como registros sob sua
 autoridade.
 
+`name` representa o título oficial, possivelmente extenso. `short_name`
+representa o rótulo compacto usado em seletores e cabeçalhos; quando ausente, a
+interface usa `project_id`. O título integral permanece disponível nos detalhes
+e não é truncado no contrato.
+
 O catálogo pode conter vários projetos. A visualização **Todos os registros**
 continua sendo a entrada padrão do Compras; filtros por projeto são locais e
 opcionais. Cada cartão e linha da tabela informa `project_id`, e a edição

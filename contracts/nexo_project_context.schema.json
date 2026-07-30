@@ -47,6 +47,10 @@
           "description": "Referência do mesmo projeto no contexto Nexo-Compras."
         },
         "name": {"type": "string"},
+        "short_name": {
+          "type": ["string", "null"],
+          "description": "Rótulo compacto para navegação; name permanece o título oficial."
+        },
         "status": {"type": "string"}
       }
     }
