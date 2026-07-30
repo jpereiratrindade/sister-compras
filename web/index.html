@@ -5,13 +5,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Nexo-Compras · Gestão de Necessidades e Recursos</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20260730-parent-navigation">
 </head>
 
 <body>
   <div class="system-layout">
     <header class="topbar">
-      <div class="mini-brand">
+      <a class="mini-brand" href="./" aria-label="Ir para a visão geral do Nexo-Compras">
         <svg class="brand-symbol" viewBox="0 0 64 64" aria-hidden="true">
           <g fill="none" stroke="currentColor" stroke-width="2.8">
             <path d="M32 5 55 18v28L32 59 9 46V18z" />
@@ -31,7 +31,7 @@
           <span class="brand-super">Nexo</span>
           <h1>Compras</h1>
         </div>
-      </div>
+      </a>
 
       <div class="top-center-label">
         <span>Gestão de Recursos, Cotações e Decisões de Pesquisa</span>
@@ -84,6 +84,12 @@
           </svg>
           Acordo com Nexo
         </button>
+        <a class="nav-link nav-parent-link" href="../#dashboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m10 6-6 6 6 6M4 12h16" />
+          </svg>
+          Voltar ao Nexo
+        </a>
       </nav>
       <div class="sidebar-footer">
         <span id="sidebar-agreement-label">Acordo não iniciado</span>
@@ -681,7 +687,7 @@
     </form>
   </dialog>
 
-  <script src="./app.js?v=20260730-project-labels"></script>
+  <script src="./app.js?v=20260730-parent-navigation"></script>
 </body>
 
 </html>

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ? '/integrations/nexo/compras'
     : '';
   const apiUrl = path => `${integrationPrefix}${path}`;
-  const tabs = document.querySelectorAll('.nav-link');
+  const tabs = document.querySelectorAll('.nav-link[data-tab]');
   const tabContents = document.querySelectorAll('.tab-content');
   const refreshBtn = document.getElementById('refresh-btn');
   const needsFilter = document.getElementById('needs-filter');

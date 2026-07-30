@@ -90,6 +90,10 @@ Para compilar o projeto C++20, rodar todos os testes automatizados, validar cont
 Acesse pelo SisTer autenticado em:
 **`http://localhost:8000/integrations/nexo/compras/`**.
 
+A marca **Nexo-Compras**, no canto superior esquerdo, retorna à visão geral do
+Compras. A ação **Voltar ao Nexo**, separada ao fim da navegação lateral,
+restabelece explicitamente o contexto do subsistema integrador.
+
 A origem `http://127.0.0.1:8016` permanece em loopback e recusa acesso sem a
 identidade federada. O acervo operacional autenticado é listado integralmente
 no Compras e cada necessidade exibe sua referência de projeto. Toda nova
