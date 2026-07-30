@@ -89,6 +89,18 @@ Para compilar o projeto C++20, rodar todos os testes automatizados, validar cont
 ./scripts/run_all.sh dev 8016
 ```
 
+### Modo de Serviço (Systemd)
+O Nexo-Compras foi adaptado para rodar nativamente como um serviço orquestrado via systemd. Isso resolve problemas de portas presas e permite automação de infraestrutura.
+Para habilitar na sua máquina local:
+```bash
+# O ambiente carrega as variáveis (incluindo volume de banco e portas):
+# /run/media/.../sister_compras/sister-compras-local.env
+
+systemctl --user start sister-compras
+systemctl --user status sister-compras
+```
+No ambiente de produção as variáveis estarão em `/etc/sister/sister-compras.env` e o systemd invocará a receita na inicialização.
+
 Acesse pelo SisTer autenticado em:
 **`http://localhost:8000/integrations/nexo/compras/`**.
 

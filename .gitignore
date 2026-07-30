@@ -18,3 +18,5 @@ __pycache__/
 *.py[cod]
 storage/compras_data.json
 .env
+sister-compras-local.env
+sister-compras-local.service
