@@ -24,6 +24,15 @@ status="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE_URL}/")"
 curl -fsS "${headers[@]}" "${BASE_URL}/api/me" |
   python3 -c 'import json,sys; value=json.load(sys.stdin); assert value["subject"] == "smoke-test"'
 
+curl -fsS "${headers[@]}" "${BASE_URL}/api/data" |
+  python3 -c '
+import json, sys
+value = json.load(sys.stdin)
+assert isinstance(value["projects"], list)
+assert isinstance(value["needs"], list)
+assert isinstance(value["decisions"], list)
+'
+
 context_response="$(
   curl -sS -w $'\n%{http_code}' "${headers[@]}" \
     "${BASE_URL}/api/nexo/context"
@@ -49,6 +58,8 @@ page="$(curl -fsS "${headers[@]}" "${BASE_URL}/")"
 grep -q "<title>Nexo-Compras" <<<"$page"
 grep -q 'nexo-compras.profile/1.0.0' <<<"$page"
 grep -q 'id="need-project-select"' <<<"$page"
+grep -q 'id="edit-need-project"' <<<"$page"
+grep -q '20260730-compras-catalog' <<<"$page"
 python3 -c '
 from html.parser import HTMLParser
 import sys

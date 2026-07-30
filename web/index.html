@@ -98,9 +98,9 @@
             <span class="eyebrow">Painel do Pesquisador</span>
             <h2>Gestão de Recursos de Pesquisa</h2>
             <div style="display:flex; align-items:center; gap:8px;">
-              <p id="project-header-info" style="margin:0;">Carregando informações do projeto...</p>
-              <label>Projeto
-                <select id="active-project-select" aria-label="Projeto ativo"></select>
+              <p id="project-header-info" style="margin:0;">Carregando acervo do Compras...</p>
+              <label>Visualização
+                <select id="active-project-select" aria-label="Filtrar por projeto"></select>
               </label>
               <a class="secondary-action" href="../#equipe"
                 style="padding:2px 8px; font-size:0.72rem; text-decoration:none;">
@@ -147,7 +147,7 @@
           <div class="panel-header">
             <div>
               <span class="section-kicker">Módulo de Aquisição</span>
-              <h3>Necessidades e Cotações do Projeto</h3>
+              <h3>Necessidades e Cotações</h3>
             </div>
             <div class="search-field">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -215,6 +215,7 @@
               <tr>
                 <th>Código</th>
                 <th>Necessidade / Especificação</th>
+                <th>Projeto</th>
                 <th>Categoria</th>
                 <th>Qtd</th>
                 <th>Orçamento Est. (R$)</th>
@@ -400,6 +401,12 @@
       </div>
       <div class="form-body">
         <input type="hidden" name="need_id" id="edit-need-id">
+        <label>
+          Projeto cadastrado no Nexo
+          <select name="project_id" id="edit-need-project" required>
+            <option value="">Selecione um projeto</option>
+          </select>
+        </label>
         <label>
           Título da Necessidade / Recurso
           <input type="text" name="title" id="edit-need-title" required>
@@ -674,7 +681,7 @@
     </form>
   </dialog>
 
-  <script src="./app.js?v=20260729-project-scope"></script>
+  <script src="./app.js?v=20260730-compras-catalog"></script>
 </body>
 
 </html>

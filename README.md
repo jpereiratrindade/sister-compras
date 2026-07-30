@@ -91,9 +91,11 @@ Acesse pelo SisTer autenticado em:
 **`http://localhost:8000/integrations/nexo/compras/`**.
 
 A origem `http://127.0.0.1:8016` permanece em loopback e recusa acesso sem a
-identidade federada. Dados do projeto também exigem uma decisão positiva do
-Nexo: identidade autenticada sem atribuição local no projeto recebe `403`.
-Toda nova necessidade exige a seleção de um projeto cadastrado no Nexo.
+identidade federada. O acervo operacional autenticado é listado integralmente
+no Compras e cada necessidade exibe sua referência de projeto. Toda nova
+necessidade e toda reatribuição exigem a seleção de um projeto cadastrado no
+Nexo. Projeções enviadas ao Nexo e operações sobre um projeto continuam
+sujeitas ao acordo e à autorização local correspondente.
 
 ---
 

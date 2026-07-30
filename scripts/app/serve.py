@@ -470,11 +470,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             and self.headers.get("X-Sister-System", "").strip()
             == "sister_nexo"
         )
-        if not trusted_nexo_projection and path in {
-            '/api/integration/data/need-summaries',
-            '/api/data',
-            '/api/reports/shopping-list',
-        } and not self.require_nexo_permission(
+        if not trusted_nexo_projection and path == (
+            '/api/integration/data/need-summaries'
+        ) and not self.require_nexo_permission(
             identity, "procurement.view",
             query.get("project_id", [None])[0],
         ):
@@ -568,24 +566,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 })
             return
         if path == '/api/data':
-            project_id = query.get("project_id", [None])[0]
             data = db_manager.load_data()
-            visible_need_ids = {
-                need["id"] for need in data.get("needs", [])
-                if need.get("project_id") == project_id
-            }
-            data["projects"] = [
-                project for project in data.get("projects", [])
-                if project.get("id") == project_id
-            ]
-            data["needs"] = [
-                need for need in data.get("needs", [])
-                if need.get("id") in visible_need_ids
-            ]
-            data["decisions"] = [
-                decision for decision in data.get("decisions", [])
-                if decision.get("need_id") in visible_need_ids
-            ]
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -610,22 +591,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             data = db_manager.load_data()
             project_id = query.get("project_id", [None])[0]
-            data["projects"] = [
-                project for project in data.get("projects", [])
-                if project.get("id") == project_id
-            ]
-            visible_need_ids = {
-                need["id"] for need in data.get("needs", [])
-                if need.get("project_id") == project_id
-            }
-            data["needs"] = [
-                need for need in data.get("needs", [])
-                if need.get("id") in visible_need_ids
-            ]
-            data["decisions"] = [
-                decision for decision in data.get("decisions", [])
-                if decision.get("need_id") in visible_need_ids
-            ]
+            if project_id:
+                data["projects"] = [
+                    project for project in data.get("projects", [])
+                    if project.get("id") == project_id
+                ]
+                visible_need_ids = {
+                    need["id"] for need in data.get("needs", [])
+                    if need.get("project_id") == project_id
+                }
+                data["needs"] = [
+                    need for need in data.get("needs", [])
+                    if need.get("id") in visible_need_ids
+                ]
+                data["decisions"] = [
+                    decision for decision in data.get("decisions", [])
+                    if decision.get("need_id") in visible_need_ids
+                ]
             filter_ids = None
             if 'ids' in query and query['ids']:
                 filter_ids = [i.strip() for i in query['ids'][0].split(',') if i.strip()]
@@ -857,10 +839,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 for need in data.get("needs", [])
                 if need.get("id") == need_id
             ), None)
-        if not self.require_nexo_permission(
-            identity, "procurement.manage", source_project_id
-        ):
-            return
+        if path != '/api/ollama/intent':
+            if not self.require_nexo_permission(
+                identity, "procurement.manage", source_project_id
+            ):
+                return
 
         if self.path == '/api/needs':
             existing_nums = []
@@ -912,8 +895,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/needs/update':
             need_id = payload.get('need_id')
             found = False
+            if source_project_id and not any(
+                project.get("id") == source_project_id
+                for project in data.get("projects", [])
+            ):
+                data.setdefault("projects", []).append({
+                    "id": source_project_id,
+                    "name": payload.get("project_name") or source_project_id,
+                    "description": (
+                        "Referência de projeto sob autoridade do SisTer Nexo."
+                    ),
+                    "lead_researcher": identity["name"],
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-12-31",
+                })
             for need in data.get('needs', []):
                 if need['id'] == need_id:
+                    if source_project_id:
+                        need['project_id'] = source_project_id
                     if 'title' in payload and payload['title']: need['title'] = payload['title']
                     if 'category' in payload and payload['category']: need['category'] = payload['category']
                     if 'quantity' in payload and payload['quantity']: need['quantity'] = int(payload['quantity'])

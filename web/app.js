@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentAgreement = null;
   let currentNexoContext = null;
   let currentProjectId =
-    localStorage.getItem('nexo_compras_project_id') || '';
+    localStorage.getItem('nexo_compras_view_project_id_v2') || '';
   let lastAiAnalysisText = '';
   let lastAnalyzedNeedId = '';
   let chatHistoryList = [];
@@ -67,13 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const projects = currentNexoContext?.projects || [];
     const comprasProjectId = project =>
       project.procurement_project_id || project.project_id;
-    if (!projects.some(project =>
+    if (currentProjectId && !projects.some(project =>
       comprasProjectId(project) === currentProjectId)) {
-      currentProjectId = projects[0]
-        ? comprasProjectId(projects[0]) : '';
-    }
-    if (currentProjectId) {
-      localStorage.setItem('nexo_compras_project_id', currentProjectId);
+      currentProjectId = '';
     }
     const options = projects.map(project =>
       `<option value="${escapeHtml(comprasProjectId(project))}"${
@@ -82,15 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
     ).join('');
     const activeSelect = document.getElementById('active-project-select');
     const needSelect = document.getElementById('need-project-select');
+    const editNeedSelect = document.getElementById('edit-need-project');
     if (activeSelect) {
-      activeSelect.innerHTML = options ||
-        '<option value="">Nenhum projeto autorizado</option>';
-      activeSelect.disabled = !projects.length;
+      activeSelect.innerHTML =
+        '<option value="">Todos os registros</option>' + options;
+      activeSelect.value = currentProjectId;
     }
     if (needSelect) {
       needSelect.innerHTML =
         '<option value="">Selecione um projeto</option>' + options;
-      needSelect.value = currentProjectId;
+      needSelect.value = currentProjectId ||
+        (projects[0] ? comprasProjectId(projects[0]) : '');
+    }
+    if (editNeedSelect) {
+      editNeedSelect.innerHTML =
+        '<option value="">Selecione um projeto</option>' + options;
     }
     const query = currentProjectId
       ? `?project_id=${encodeURIComponent(currentProjectId)}` : '';
@@ -463,6 +465,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!need) return;
 
     document.getElementById('edit-need-id').value = need.id;
+    const editProject = document.getElementById('edit-need-project');
+    if (editProject) {
+      if (![...editProject.options].some(option =>
+        option.value === need.project_id)) {
+        editProject.insertAdjacentHTML('beforeend',
+          `<option value="${escapeHtml(need.project_id)}">${
+            escapeHtml(need.project_id)
+          } · referência atual</option>`);
+      }
+      editProject.value = need.project_id || '';
+    }
     document.getElementById('edit-need-title').value = need.title || '';
     document.getElementById('edit-need-category').value = need.category || 'Equipamentos Científicos';
     document.getElementById('edit-need-quantity').value = need.quantity || 1;
@@ -500,6 +513,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(formEditNeed);
       const payload = {
         need_id: formData.get('need_id'),
+        project_id: formData.get('project_id'),
+        project_name: (currentNexoContext?.projects || []).find(project =>
+          (project.procurement_project_id || project.project_id) ===
+            formData.get('project_id'))?.name || '',
         title: formData.get('title'),
         category: formData.get('category'),
         quantity: parseInt(formData.get('quantity'), 10),
@@ -724,12 +741,22 @@ document.addEventListener('DOMContentLoaded', () => {
       proposalContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--teal); font-weight:bold;">Gravando no Banco de Dados...</div>';
       
       let targetUrl = '/api/needs';
+      const actionNeed = (currentData?.needs || []).find(need =>
+        need.id === params.need_id);
+      const contextProjects = currentNexoContext?.projects || [];
+      const actionProjectId = params.project_id ||
+        actionNeed?.project_id ||
+        currentProjectId ||
+        (contextProjects.length === 1
+          ? (contextProjects[0].procurement_project_id ||
+            contextProjects[0].project_id)
+          : '');
       let bodyPayload = {
         ...params,
-        project_id: currentProjectId,
-        project_name: (currentNexoContext?.projects || []).find(project =>
+        project_id: actionProjectId,
+        project_name: contextProjects.find(project =>
           (project.procurement_project_id || project.project_id) ===
-            currentProjectId)?.name || ''
+            actionProjectId)?.name || ''
       };
 
       if (action === 'update_need') targetUrl = '/api/needs/update';
@@ -972,11 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadDashboardData() {
     try {
       if (!currentNexoContext) await loadIntegrationAgreement();
-      if (!currentProjectId) {
-        throw new Error('Nenhum projeto autorizado foi recebido do Nexo.');
-      }
-      const response = await fetch(apiUrl(
-        `/api/data?project_id=${encodeURIComponent(currentProjectId)}`));
+      const response = await fetch(apiUrl('/api/data'), {cache: 'no-store'});
       if (!response.ok) {
         throw new Error('Falha ao obter dados');
       }
@@ -1043,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (filtered.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">*Nenhuma necessidade encontrada para os filtros selecionados.*</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--muted);">*Nenhuma necessidade encontrada para os filtros selecionados.*</td></tr>';
       return;
     }
 
@@ -1057,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-weight:bold; color:var(--navy);">${need.title}</div>
           ${need.description ? `<small style="color:var(--muted); display:block; font-size:0.75rem;">${need.description}</small>` : ''}
         </td>
+        <td><small style="color:var(--muted); font-weight:600;">${escapeHtml(need.project_id || 'Sem atribuição')}</small></td>
         <td>${need.category}</td>
         <td>${need.quantity}</td>
         <td><strong>${estBudgetStr}</strong></td>
@@ -1167,16 +1191,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderData(data) {
-    const project = data.projects && data.projects[0];
+    const allNeeds = data.needs || [];
+    const needs = currentProjectId
+      ? allNeeds.filter(need => need.project_id === currentProjectId)
+      : allNeeds;
+    const visibleNeedIds = new Set(needs.map(need => need.id));
+    const decisions = (data.decisions || []).filter(decision =>
+      visibleNeedIds.has(decision.need_id));
+    const project = currentProjectId
+      ? (data.projects || []).find(item => item.id === currentProjectId)
+      : null;
+    const headerEl = document.getElementById('project-header-info');
     if (project) {
-      const headerEl = document.getElementById('project-header-info');
       if (headerEl) {
         headerEl.textContent = `Projeto: ${project.name} (${project.id}) · Pesquisador: ${project.lead_researcher || 'José Pedro Trindade'}`;
       }
+    } else if (headerEl) {
+      headerEl.textContent =
+        `Acervo completo do Compras · ${allNeeds.length} registros`;
     }
 
-    const needs = data.needs || [];
-    const decisions = data.decisions || [];
     const decisionMap = {};
     decisions.forEach(d => { decisionMap[d.need_id] = d; });
 
@@ -1222,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="width:100%;">
           <h3 style="margin:0 0 4px 0; font-size:1.05rem; font-weight:700; color:var(--navy); line-height:1.35; word-break:break-word;">${need.title}</h3>
           <div style="font-size:0.8rem; color:var(--muted);"><strong>Categoria:</strong> ${need.category}</div>
+          <div style="font-size:0.76rem; color:var(--muted); margin-top:3px;"><strong>Projeto:</strong> ${escapeHtml(need.project_id || 'Sem atribuição')}</div>
         </div>
 
         <!-- Description Box -->
@@ -1320,9 +1355,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('active-project-select')?.addEventListener(
     'change', async event => {
       currentProjectId = event.currentTarget.value;
-      localStorage.setItem('nexo_compras_project_id', currentProjectId);
+      localStorage.setItem(
+        'nexo_compras_view_project_id_v2', currentProjectId);
       renderProjectSelectors();
-      await loadDashboardData();
+      if (currentData) renderData(currentData);
     }
   );
 
