@@ -20,8 +20,8 @@ Preparar este produto como contexto especializado ligado ao Nexo. O nome
 **Nexo-Compras** é adotado como nome de produto. Repositório e identificador
 `sister_compras` são preservados para compatibilidade.
 
-O Nexo será autoridade para `project_id`, `research_activity_id` e
-`activity_id`. O Compras será autoridade para `need_id`, requisitos,
+O Nexo é autoridade para `project_id`, `research_activity_id` e
+`activity_id`. O Compras é autoridade para `need_id`, requisitos,
 alternativas, observações de preço, `decision_id` e atendimento.
 
 A comunicação ocorrerá por contrato e identidade federada. Não haverá acesso
@@ -58,6 +58,12 @@ bruta permanecem no Compras.
 - negociação de capacidades e recibos operacionalizados nas interfaces web;
 - dados operacionais ignorados e exemplo sanitizado versionado.
 
+O catálogo do Nexo é multiprojeto. O Compras não mantém cadastro concorrente:
+persiste somente referências mínimas necessárias às suas chaves e operações.
+Seu acervo autenticado é exibido integralmente por padrão; o filtro por projeto
+é uma opção de visualização, não uma condição para a existência do registro.
+Criação e reatribuição de necessidade exigem projeto recebido pelo contrato.
+
 ## Critérios de aceite
 
 1. recursos locais sem colisão e registrados centralmente;
@@ -67,4 +73,6 @@ bruta permanecem no Compras.
 5. autenticação delegada ao SisTer;
 6. testes de contrato Nexo–Compras;
 7. migração e rollback validados;
-8. decisão explícita sobre o nome `Nexo-Compras`.
+8. decisão explícita sobre o nome `Nexo-Compras`;
+9. acervo local não desaparece quando o catálogo remoto está indisponível;
+10. projeto atribuído é visível e editável em cada necessidade.

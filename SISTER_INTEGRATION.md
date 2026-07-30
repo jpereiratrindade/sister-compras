@@ -89,5 +89,10 @@ referências de atividades científicas e operacionais. O Compras exibe esses
 metadados como referências externas e nunca os trata como registros sob sua
 autoridade.
 
+O catálogo pode conter vários projetos. A visualização **Todos os registros**
+continua sendo a entrada padrão do Compras; filtros por projeto são locais e
+opcionais. Cada cartão e linha da tabela informa `project_id`, e a edição
+permite reatribuir a necessidade a outro projeto autorizado do Nexo.
+
 Consulte
 [`adr/ADR-005-nexo-compras-federated-boundary.md`](adr/ADR-005-nexo-compras-federated-boundary.md).
