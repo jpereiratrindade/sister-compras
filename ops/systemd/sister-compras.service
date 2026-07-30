@@ -1,0 +1,23 @@
+[Unit]
+Description=SisTer Compras Subsystem
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sister-compras
+EnvironmentFile=/etc/sister/sister-compras.env
+
+# Exporta explicitamente a URL do banco para o código C++ usar
+Environment=DATABASE_URL=postgresql://${COMPRAS_DB_USER}:${COMPRAS_DB_PASSWORD}@127.0.0.1:${COMPRAS_DB_PORT}/${COMPRAS_DB_NAME}
+
+# Assegura que o container do banco esteja rodando antes de inicializar o app
+ExecStartPre=/usr/bin/podman compose up -d compras-db
+
+# O comando que serve a interface e interage com o core do Compras
+ExecStart=/usr/bin/python3 scripts/app/serve.py ${COMPRAS_APP_PORT}
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
